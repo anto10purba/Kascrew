@@ -547,6 +547,31 @@ let isSaving = false;
 let pendingSave = false;
 
 // ─── STORAGE ───────────────────────────────────────────────
+async function fetchState() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?key=eq.${ROW_KEY}&select=data`, { headers: SB_HEADERS });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  const rows = await res.json();
+  if (rows && rows.length > 0 && rows[0].data) {
+    let s = rows[0].data;
+    // Supabase JSONB kadang sudah object, kadang masih string
+    if (typeof s === 'string') s = JSON.parse(s);
+    return s;
+  }
+  return null;
+}
+
+function applyState(s) {
+  if (s) {
+    state = s;
+  }
+  if (!Array.isArray(state.members))  state.members  = [];
+  if (!Array.isArray(state.incomes))  state.incomes  = [];
+  if (!Array.isArray(state.expenses)) state.expenses = [];
+  if (!Array.isArray(state.notes))    state.notes    = [];
+  if (typeof state.payments !== 'object' || Array.isArray(state.payments)) state.payments = {};
+  if (typeof state.exempts  !== 'object' || Array.isArray(state.exempts))  state.exempts  = {};
+}
+
 async function load() {
   const now = new Date();
   document.getElementById("selMonth").value = now.getMonth();
@@ -554,22 +579,14 @@ async function load() {
 
   showLoading(true);
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?key=eq.${ROW_KEY}&select=data`, { headers: SB_HEADERS });
-    const rows = await res.json();
-    if (rows && rows.length > 0 && rows[0].data) {
-      const s = rows[0].data;
-      state = typeof s === 'string' ? JSON.parse(s) : s;
-    }
-    if (!state.incomes)  state.incomes  = [];
-    if (!state.notes)    state.notes    = [];
-    if (!state.payments) state.payments = {};
-    if (!state.exempts)  state.exempts  = {};
+    const s = await fetchState();
+    applyState(s);
   } catch(e) {
     console.error('Load error:', e);
     // fallback localStorage
     try {
-      const s = localStorage.getItem("kascrew-v2");
-      if (s) state = JSON.parse(s);
+      const ls = localStorage.getItem("kascrew-v2");
+      if (ls) applyState(JSON.parse(ls));
     } catch(e2) {}
   }
   showLoading(false);
@@ -579,19 +596,12 @@ async function load() {
   setInterval(async () => {
     if (isSaving) return;
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?key=eq.${ROW_KEY}&select=data`, { headers: SB_HEADERS });
-      const rows = await res.json();
-      if (rows && rows.length > 0 && rows[0].data) {
-        const s = rows[0].data;
-        const newState = typeof s === 'string' ? JSON.parse(s) : s;
-        state = newState;
-        if (!state.incomes)  state.incomes  = [];
-        if (!state.notes)    state.notes    = [];
-        if (!state.payments) state.payments = {};
-        if (!state.exempts)  state.exempts  = {};
+      const s = await fetchState();
+      if (s) {
+        applyState(s);
         render();
       }
-    } catch(e) {}
+    } catch(e) { console.error('Poll error:', e); }
   }, 15000);
 }
 
@@ -604,13 +614,20 @@ async function save() {
 
   const body = JSON.stringify({ key: ROW_KEY, data: state });
   try {
-    // Coba upsert
+    // Coba upsert (POST dengan merge-duplicates)
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
       method: 'POST',
-      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      headers: {
+        ...SB_HEADERS,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
       body
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Save response error:', errText);
+      throw new Error(errText);
+    }
     // Tampilkan indikator tersimpan
     const si = document.getElementById('syncIndicator');
     if (si) { si.style.display='block'; setTimeout(()=>si.style.display='none',2000); }
@@ -939,6 +956,7 @@ function addIncome() {
   const errEl = document.getElementById("incError");
   if (!date||!desc||!amount||amount<=0) { errEl.textContent="Semua kolom wajib diisi."; return; }
   errEl.textContent="";
+  if(!Array.isArray(state.incomes)) state.incomes=[];
   state.incomes.unshift({id:Date.now(),date,desc,amount,category});
   document.getElementById("incDate").value="";
   document.getElementById("incDesc").value="";
@@ -960,6 +978,7 @@ function addExpense() {
   const errEl=document.getElementById("expError");
   if(!date||!desc||!amount||amount<=0){errEl.textContent="Semua kolom wajib diisi.";return;}
   errEl.textContent="";
+  if(!Array.isArray(state.expenses)) state.expenses=[];
   state.expenses.unshift({id:Date.now(),date,desc,amount,category});
   document.getElementById("expDate").value="";
   document.getElementById("expDesc").value="";
@@ -976,6 +995,7 @@ function deleteExpense(id){
 function addMember(){
   const name=document.getElementById("memberInput").value.trim();
   if(!name)return;
+  if(!Array.isArray(state.members)) state.members=[];
   state.members.push({id:Date.now(),name});
   document.getElementById("memberInput").value="";
   save();render();
@@ -993,6 +1013,7 @@ function addNote(){
   const body=document.getElementById("noteBody").value.trim();
   if(!title||!body){alert("Judul dan isi catatan wajib diisi");return;}
   const now=new Date();
+  if(!Array.isArray(state.notes)) state.notes=[];
   state.notes.unshift({id:Date.now(),title,body,date:now.toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"})});
   document.getElementById("noteTitle").value="";
   document.getElementById("noteBody").value="";
