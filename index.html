@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KASCREW - Kas Electric DMLZ</title>
+<style>
+/* ── TEMA LISTRIK DMLZ ── */
+:root {
+  --dark:    #0F172A;
+  --dark2:   #1E293B;
+  --dark3:   #334155;
+  --yellow:  #FACC15;
+  --yellow2: #FDE047;
+  --yellow3: #CA8A04;
+  --bg:      #F1F5F9;
+  --card:    #FFFFFF;
+  --border:  #E2E8F0;
+  --text:    #0F172A;
+  --muted:   #64748B;
+  --green:   #22C55E;
+  --red:     #EF4444;
+  --accent:  #FACC15;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── HEADER ── */
+.header { background: var(--dark); color: #fff; padding: 16px 18px 0; border-bottom: 3px solid var(--yellow); }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.header-label { font-size: 10px; color: var(--yellow); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+.header-title { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+.header-title span.bolt { color: var(--yellow); font-size: 20px; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.month-picker { background: var(--dark2); border: 1px solid var(--dark3); border-radius: 8px; padding: 5px 10px; display: flex; gap: 6px; align-items: center; }
+.month-picker select { background: transparent; border: none; color: #fff; font-size: 12px; outline: none; cursor: pointer; }
+.month-picker select option { color: #222; background:#fff; }
+.header-btns { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+.btn-logout { background: var(--yellow); border: none; color: var(--dark); border-radius: 7px; padding: 5px 12px; font-size: 11px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; }
+.role-tag { background: var(--dark2); border: 1px solid var(--dark3); color: var(--yellow); border-radius: 7px; padding: 4px 10px; font-size: 10px; font-weight: 700; text-align: center; }
+
+/* ── SALDO CARD ── */
+.saldo-card { background: var(--dark2); border: 1px solid var(--dark3); border-radius: 12px; padding: 14px 16px; margin: 12px 0 0; display: flex; justify-content: space-between; align-items: center; }
+.saldo-label { font-size: 10px; color: #94A3B8; letter-spacing: 1px; text-transform: uppercase; }
+.saldo-value { font-size: 24px; font-weight: 900; color: var(--yellow); margin-top: 2px; }
+.saldo-right { text-align: right; font-size: 12px; }
+.c-green { color: #4ADE80; }
+.c-red   { color: #FCA5A5; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 2px; margin-top: 14px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 8px 10px; border: none; cursor: pointer; font-size: 10px; font-weight: 700; background: transparent; color: #94A3B8; border-radius: 8px 8px 0 0; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.3px; }
+.tab.active { background: var(--bg); color: var(--dark); border-top: 2px solid var(--yellow); }
+
+/* ── BODY & CARDS ── */
+.body { padding: 14px; }
+.card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border: 1px solid var(--border); }
+.card-title { font-weight: 800; margin-bottom: 10px; font-size: 14px; color: var(--dark); display: flex; align-items: center; gap: 6px; }
+.card-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; margin-top: -6px; }
+
+/* ── STAT GRID ── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat-box { border-radius: 10px; padding: 12px 14px; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.stat-box:active { transform: scale(0.97); }
+.stat-box:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+.stat-box .lbl { font-size: 10px; color: var(--muted); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-box .val { font-size: 22px; font-weight: 900; }
+.stat-box .unit { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* ── PROGRESS ── */
+.progress-bar { background: #E2E8F0; border-radius: 99px; height: 7px; overflow: hidden; }
+.progress-fill { background: linear-gradient(90deg, var(--yellow3), var(--yellow)); height: 100%; transition: width 0.4s; }
+.progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+/* ── LIST ── */
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.list-item:last-child { border-bottom: none; }
+.item-name { font-weight: 600; font-size: 14px; color: var(--dark); }
+.item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── AVATAR ── */
+.avatar { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+
+/* ── BUTTONS ── */
+.btn-primary { background: var(--dark); color: var(--yellow); border: none; border-radius: 10px; padding: 11px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%; letter-spacing: 0.5px; }
+.btn-primary:active { opacity: 0.85; }
+.btn-green { background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 11px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; }
+.btn-outline { background: #fff; color: var(--dark); border: 2px solid var(--dark); border-radius: 10px; padding: 10px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; }
+.btn-sm { padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 11px; transition: all 0.2s; }
+.btn-paid { background: #DCFCE7; color: #16A34A; }
+.btn-unpaid { background: var(--dark); color: var(--yellow); }
+.btn-del { background: #FEE2E2; border: none; border-radius: 6px; padding: 4px 10px; color: var(--red); cursor: pointer; font-size: 11px; font-weight: 600; }
+.btn-add { background: var(--yellow); color: var(--dark); border: none; border-radius: 10px; padding: 0 18px; font-weight: 900; cursor: pointer; font-size: 22px; height: 42px; }
+.btn-share { background: var(--dark); color: var(--yellow); border: 2px solid var(--yellow); border-radius: 10px; padding: 11px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%; margin-bottom: 10px; letter-spacing: 0.5px; }
+
+/* ── FORM ── */
+.form-group { display: grid; gap: 10px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: #F8FAFC; font-family: inherit; color: var(--dark); }
+textarea { resize: vertical; min-height: 80px; }
+input:focus, select:focus, textarea:focus { border-color: var(--yellow3); background: #fff; box-shadow: 0 0 0 3px rgba(250,204,21,0.15); }
+.input-row { display: flex; gap: 10px; }
+.input-row input { flex: 1; }
+.err { color: var(--red); font-size: 12px; }
+.label-sm { font-size: 12px; color: var(--dark2); font-weight: 700; margin-bottom: 4px; }
+
+/* ── INFO BOX ── */
+.info-box { background: #FFF9E6; border: 1.5px solid var(--yellow2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--yellow3); font-weight: 700; margin-bottom: 10px; }
+.info-box-green { background: #F0FDF4; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #16A34A; font-weight: 700; margin-bottom: 10px; }
+
+/* ── BADGES ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 700; }
+.badge-green { background: #DCFCE7; color: #16A34A; }
+.badge-red   { background: #FEE2E2; color: var(--red); }
+.badge-blue  { background: #DBEAFE; color: #1D4ED8; }
+.badge-gray  { background: #F1F5F9; color: #64748B; }
+
+/* ── MISC ── */
+.empty { color: #CBD5E1; font-size: 13px; text-align: center; padding: 20px 0; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── MODAL ── */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: flex-end; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; border-top: 3px solid var(--yellow); }
+.modal-title { font-weight: 800; font-size: 16px; margin-bottom: 16px; color: var(--dark); }
+.modal-close { float: right; background: #F1F5F9; border: none; border-radius: 99px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; color: var(--dark); }
+
+/* ── VIEW BANNER ── */
+.view-banner { background: var(--dark); border: 2px solid var(--yellow); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--yellow); margin-bottom: 14px; text-align: center; font-weight: 700; letter-spacing: 0.5px; }
+
+/* ── CATATAN ── */
+.note-item { background: #FFFBEB; border-left: 4px solid var(--yellow); border-radius: 0 10px 10px 0; padding: 10px 14px; margin-bottom: 10px; }
+.note-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── FOTO THUMBNAIL ── */
+.foto-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1.5px solid var(--border); display: block; }
+.foto-thumb:hover { border-color: var(--yellow); box-shadow: 0 0 6px rgba(250,204,21,0.4); }
+.foto-link { font-size: 10px; color: var(--yellow3); cursor: pointer; margin-top: 2px; font-weight: 700; }
+
+/* ── BAYAR ANGGOTA ── */
+.btn-pay-member { background: var(--yellow); color: var(--dark); border: none; border-radius: 12px; padding: 14px; font-weight: 900; font-size: 15px; cursor: pointer; width: 100%; margin-bottom: 10px; letter-spacing: 0.5px; }
+.btn-livin { background: linear-gradient(135deg,#f59e0b,#fbbf24); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 15px; cursor: pointer; width: 100%; }
+.rekening-box { background: #0F172A; border: 2px solid var(--yellow); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.rekening-num { font-size: 22px; font-weight: 900; color: var(--yellow); letter-spacing: 3px; margin: 8px 0; }
+.history-item { background: #F8FAFC; border-radius: 10px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--border); }
+.pending-badge { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: 5px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+
+/* ── LOGIN SCREEN ── */
+#loginScreen { display:flex; position:fixed; inset:0; background: var(--dark); z-index:999; align-items:center; justify-content:center; padding:24px; }
+.login-box { background: var(--dark2); border: 2px solid var(--dark3); border-radius: 24px; padding: 32px 24px; width: 100%; max-width: 360px; }
+.login-logo { text-align:center; margin-bottom:24px; }
+.login-logo .logo-icon { font-size: 52px; }
+.login-logo .logo-title { font-size: 26px; font-weight: 900; color: var(--yellow); margin-top: 6px; letter-spacing: 2px; }
+.login-logo .logo-sub { font-size: 10px; color: #64748B; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+.pin-dots { display:flex; justify-content:center; gap:14px; margin:16px 0; }
+.pin-dot { width: 14px; height: 14px; border-radius: 99px; background: var(--dark3); border: 2px solid var(--dark3); transition: all 0.2s; }
+.pin-dot.filled { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 8px rgba(250,204,21,0.5); }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+.pin-btn { padding: 16px; border: 1px solid var(--dark3); border-radius: 12px; background: var(--dark); font-size: 20px; font-weight: 700; cursor: pointer; transition: all 0.15s; color: #fff; }
+.pin-btn:active { background: var(--yellow); color: var(--dark); transform: scale(0.95); }
+.pin-del { background: var(--dark); border-color: var(--red); color: var(--red); }
+.login-err { color: var(--red); font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
+.login-role { display: flex; gap: 8px; margin-bottom: 20px; }
+.role-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--dark3); background: var(--dark); font-size: 13px; font-weight: 700; cursor: pointer; color: #94A3B8; transition: all 0.2s; }
+.role-btn.active { border-color: var(--yellow); background: rgba(250,204,21,0.1); color: var(--yellow); }
+.pin-change-form { display:grid; gap:10px; }
+
+/* ── SHARE PAGE ── */
+#sharePage { display:none; position:fixed; inset:0; background: var(--bg); z-index:200; overflow-y:auto; }
+#sharePage .sp-header { background: var(--dark); border-bottom: 3px solid var(--yellow); color:#fff; padding:16px 18px; }
+#sharePage .sp-title { font-size: 18px; font-weight: 900; color: var(--yellow); letter-spacing: 1px; }
+#sharePage .sp-sub { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+#sharePage .sp-body { padding:14px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING & ERROR BANNERS -->
+<div id="loadingBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#0F172A;border-bottom:2px solid #FACC15;color:#FACC15;text-align:center;padding:10px;font-size:13px;font-weight:600;">⏳ Memuat data...</div>
+<div id="saveErrBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;text-align:center;padding:10px;font-size:13px;font-weight:600;">⚠️ Gagal menyimpan, cek koneksi internet</div>
+<div id="syncIndicator" style="position:fixed;bottom:16px;right:16px;z-index:500;background:#0F172A;border:2px solid #FACC15;color:#FACC15;border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;display:none;box-shadow:0 2px 8px rgba(0,0,0,0.2)">✓ Tersimpan</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon" style="font-size:56px;filter:drop-shadow(0 0 12px #FACC15)">⚡</div>
+      <div class="logo-title">KASCREW</div>
+      <div class="logo-sub" style="letter-spacing:3px">Kas Electric DMLZ</div>
+    </div>
+    <div class="login-role">
+      <button class="role-btn active" id="roleAdmin" onclick="setRole('admin')">⚿ Admin</button>
+      <button class="role-btn" id="roleMember" onclick="setRole('member')">◉ Anggota</button>
+    </div>
+    <div style="font-size:12px;color:#888;text-align:center;margin-bottom:10px" id="loginHint">Masukkan PIN Admin</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinInput('1')">1</button>
+      <button class="pin-btn" onclick="pinInput('2')">2</button>
+      <button class="pin-btn" onclick="pinInput('3')">3</button>
+      <button class="pin-btn" onclick="pinInput('4')">4</button>
+      <button class="pin-btn" onclick="pinInput('5')">5</button>
+      <button class="pin-btn" onclick="pinInput('6')">6</button>
+      <button class="pin-btn" onclick="pinInput('7')">7</button>
+      <button class="pin-btn" onclick="pinInput('8')">8</button>
+      <button class="pin-btn" onclick="pinInput('9')">9</button>
+      <button class="pin-btn" style="background:#f9fafb;color:#ccc" disabled></button>
+      <button class="pin-btn" onclick="pinInput('0')">0</button>
+      <button class="pin-btn pin-del" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-label">⚡ Kas Electric DMLZ</div>
+      <div class="header-title">
+        <span class="bolt">⚡</span> KASCREW
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-btns">
+        <div class="role-tag" id="roleTag">👤 Guest</div>
+        <button class="btn-logout" onclick="logout()">⏻ Keluar</button>
+      </div>
+      <div class="month-picker">
+        <select id="selMonth" onchange="render()">
+          <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+          <option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option>
+          <option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option>
+          <option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
+        </select>
+        <select id="selYear" onchange="render()">
+          <!-- tahun di-generate otomatis oleh JS -->
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="saldo-card">
+    <div>
+      <div class="saldo-label" style="letter-spacing:2px">⚡ SALDO KAS</div>
+      <div class="saldo-value" id="saldoVal">Rp 0</div>
+    </div>
+    <div class="saldo-right">
+      <div class="saldo-label">Bulan ini</div>
+      <div class="c-green" id="hdrIncome">▲ Rp 0</div>
+      <div class="c-red" id="hdrOutcome">▼ Rp 0</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard',this)">▦ Dashboard</button>
+    <button class="tab" onclick="switchTab('dues',this)">⚡ Iuran</button>
+    <button class="tab" onclick="switchTab('income',this)">↑ Pemasukan</button>
+    <button class="tab" onclick="switchTab('expenses',this)">↓ Pengeluaran</button>
+    <button class="tab" onclick="switchTab('members',this)">◈ Anggota</button>
+    <button class="tab" onclick="switchTab('history',this)">≡ Riwayat</button>
+    <button class="tab" onclick="switchTab('notes',this)">✎ Catatan</button>
+    <button class="tab" id="tabSettings" onclick="switchTab('settings',this)">✦ Pengaturan</button>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="stat-grid">
+      <div class="stat-box" style="background:#F0FDF4;border-color:#BBF7D0" onclick="openStatModal('paid')">
+        <div class="lbl">✔ Lunas</div>
+        <div class="val" id="statPaid" style="color:#16A34A">0</div>
+        <div class="unit">anggota</div>
+      </div>
+      <div class="stat-box" style="background:#FEF2F2;border-color:#FECACA" onclick="openStatModal('unpaid')">
+        <div class="lbl">✘ Belum</div>
+        <div class="val" id="statUnpaid" style="color:#DC2626">0</div>
+        <div class="unit">anggota</div>
+      </div>
+      <div class="stat-box" style="background:#FFFBEB;border-color:#FDE68A" onclick="openStatModal('income')">
+        <div class="lbl">⚡ Masuk</div>
+        <div class="val" id="statIncome" style="color:#CA8A04;font-size:13px">Rp 0</div>
+      </div>
+      <div class="stat-box" style="background:#F1F5F9;border-color:#CBD5E1" onclick="openStatModal('expense')">
+        <div class="lbl">🔌 Pengeluaran</div>
+        <div class="val" id="statOutcome" style="color:#475569;font-size:13px">Rp 0</div>
+      </div>
+    </div>
+    <!-- Stat tambahan: Tidak Wajib + Pending -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="stat-box" style="background:#F8FAFC;border-color:#E2E8F0;cursor:pointer" onclick="openStatModal('exempt')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="lbl">⊘ Tdk Wajib</div>
+            <div class="val" id="statExempt" style="color:#94A3B8">0</div>
+            <div class="unit">anggota</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-box" id="statPendingBox" style="background:#FFFBEB;border-color:#FDE68A;cursor:pointer" onclick="openStatModal('pending')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="lbl">⚡ Konfirmasi TF</div>
+            <div class="val" id="statPending" style="color:#CA8A04">0</div>
+            <div class="unit">menunggu</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="dashProgressTitle">Progres Iuran</div>
+      <div class="progress-info"><span id="progressText">0/0 anggota</span><span id="progressPct">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="dashIncTitle">Pemasukan Lain</div>
+      <div id="dashIncList"><div class="empty">Belum ada</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="dashExpTitle">Pengeluaran</div>
+      <div id="dashExpList"><div class="empty">Belum ada</div></div>
+    </div>
+    <button class="btn-share" onclick="openShare()" id="btnShare">◉ Lihat Data — Mode Anggota</button>
+    <button class="btn-pay-member" id="btnMemberPay" onclick="openMemberPayModal()" style="display:none">⚡ Bayar Iuran Saya</button>
+  </div>
+
+  <!-- IURAN -->
+  <div id="page-dues" class="page">
+    <div class="card">
+      <div class="card-title">⚡ Iuran Wajib Bulanan</div>
+      <div class="card-sub" id="duesSubtitle"></div>
+      <div id="duesList"><div class="empty">Belum ada anggota</div></div>
+    </div>
+    <div class="info-box">
+      <span id="duesTotalLabel">⚡ Total Terkumpul</span>
+      <span id="duesTotalVal">Rp 0</span>
+    </div>
+  </div>
+
+  <!-- PEMASUKAN -->
+  <div id="page-income" class="page">
+    <div class="card" id="cardAddInc" style="">
+      <div class="card-title">↑ Tambah Pemasukan</div>
+      <div class="form-group">
+        <div><div class="label-sm">Tanggal</div><input type="date" id="incDate"></div>
+        <div><div class="label-sm">Keterangan</div><input type="text" id="incDesc" placeholder="Contoh: Dana sponsor, Donasi"></div>
+        <div><div class="label-sm">Nominal (Rp)</div><input type="number" id="incAmount" placeholder="0" inputmode="numeric"></div>
+        <div><div class="label-sm">Kategori</div>
+          <select id="incCat"><option>Sponsor</option><option>Donasi</option><option>Penjualan</option><option>Subsidi</option><option>Lain-lain</option></select>
+        </div>
+        <div class="err" id="incError"></div>
+        <button class="btn-green" onclick="addIncome()">+ Tambah Pemasukan</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="incListTitle">Daftar Pemasukan Lain</div>
+      <div id="incList"><div class="empty">Belum ada</div></div>
+      <div id="incTotal" style="display:none;justify-content:space-between;margin-top:12px;font-weight:700;">
+        <span>Total</span><span id="incTotalVal" style="color:#16a34a"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PENGELUARAN -->
+  <div id="page-expenses" class="page">
+    <div class="card" id="cardAddExp" style="">
+      <div class="card-title">↓ Tambah Pengeluaran</div>
+      <div class="form-group">
+        <div><div class="label-sm">Tanggal</div><input type="date" id="expDate"></div>
+        <div><div class="label-sm">Keterangan</div><input type="text" id="expDesc" placeholder="Keterangan pengeluaran"></div>
+        <div><div class="label-sm">Nominal (Rp)</div><input type="number" id="expAmount" placeholder="0" inputmode="numeric"></div>
+        <div><div class="label-sm">Kategori</div>
+          <select id="expCat"><option>Operasional</option><option>Konsumsi</option><option>Perlengkapan</option><option>Sosial</option><option>Lain-lain</option></select>
+        </div>
+        <div>
+          <div class="label-sm">Bukti/Foto (opsional)</div>
+          <input type="file" id="expPhoto" accept="image/*" style="padding:6px;font-size:12px;width:100%">
+          <div style="font-size:11px;color:#aaa;margin-top:3px">📁 Pilih dari galeri atau kamera · Max 5MB</div>
+        </div>
+        <div class="err" id="expError"></div>
+        <button class="btn-primary" onclick="addExpense()">+ Tambah Pengeluaran</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="expListTitle">Daftar Pengeluaran</div>
+      <div id="expList"><div class="empty">Belum ada</div></div>
+      <div id="expTotal" style="display:none;justify-content:space-between;margin-top:12px;font-weight:700;">
+        <span>Total</span><span id="expTotalVal" style="color:#ef4444"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANGGOTA -->
+  <div id="page-members" class="page">
+    <div class="card" id="cardAddMember" style="">
+      <div class="card-title">◈ Tambah Anggota</div>
+      <div class="input-row">
+        <input type="text" id="memberInput" placeholder="Nama anggota" onkeydown="if(event.key==='Enter')addMember()">
+        <button class="btn-add" onclick="addMember()">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="memberTitle">Daftar Anggota</div>
+      <div id="memberList"><div class="empty">Belum ada anggota</div></div>
+    </div>
+  </div>
+
+  <!-- CATATAN -->
+  <div id="page-notes" class="page">
+    <div class="card" id="cardAddNote" style="">
+      <div class="card-title">✎ Tambah Catatan</div>
+      <div class="form-group">
+        <div><div class="label-sm">Judul</div><input type="text" id="noteTitle" placeholder="Judul catatan"></div>
+        <div><div class="label-sm">Isi Catatan</div><textarea id="noteBody" placeholder="Tulis catatan di sini..."></textarea></div>
+        <button class="btn-primary" onclick="addNote()">+ Simpan Catatan</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">✎ Semua Catatan</div>
+      <div id="noteList"><div class="empty">Belum ada catatan</div></div>
+    </div>
+  </div>
+
+  <!-- HISTORY IURAN -->
+  <div id="page-history" class="page">
+    <div class="card">
+      <div class="card-title">≡ Riwayat Iuran Semua Anggota</div>
+      <div class="card-sub">Record pembayaran iuran yang telah dikonfirmasi admin</div>
+      <!-- Filter -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <select id="histYear" onchange="renderHistory()" style="padding:8px 10px;font-size:13px"></select>
+        <select id="histMonth" onchange="renderHistory()" style="padding:8px 10px;font-size:13px">
+          <option value="">Semua Bulan</option>
+          <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+          <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+          <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+          <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+        </select>
+      </div>
+      <input type="text" id="histSearch" placeholder="🔍 Cari nama anggota..." oninput="renderHistory()" style="width:100%;padding:8px 12px;font-size:13px;margin-bottom:12px;border:1.5px solid #e5e7eb;border-radius:10px;outline:none">
+      <div id="historyContent"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="card">
+      <div class="card-title">⚿ Ganti PIN Admin</div>
+      <div class="pin-change-form">
+        <div><div class="label-sm">PIN Admin Baru (4 digit)</div><input type="password" id="newAdminPin" placeholder="****" maxlength="4" inputmode="numeric"></div>
+        <div><div class="label-sm">Konfirmasi PIN</div><input type="password" id="confirmAdminPin" placeholder="****" maxlength="4" inputmode="numeric"></div>
+        <div class="err" id="adminPinErr"></div>
+        <button class="btn-primary" onclick="changePin('admin')">Simpan PIN Admin</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:4px">
+      <div class="card-title">◉ Ganti PIN Anggota</div>
+      <div class="pin-change-form">
+        <div><div class="label-sm">PIN Anggota Baru (4 digit)</div><input type="password" id="newMemberPin" placeholder="****" maxlength="4" inputmode="numeric"></div>
+        <div><div class="label-sm">Konfirmasi PIN</div><input type="password" id="confirmMemberPin" placeholder="****" maxlength="4" inputmode="numeric"></div>
+        <div class="err" id="memberPinErr"></div>
+        <button class="btn-green" onclick="changePin('member')">Simpan PIN Anggota</button>
+      </div>
+    </div>
+    <div class="card" style="background:#fef2f2">
+      <div class="card-title" style="color:#dc2626">ℹ️ Info PIN Saat Ini</div>
+      <div style="font-size:13px;color:#888">PIN default: <b>Admin = 1234</b>, <b>Anggota = 0000</b><br>Ganti PIN segera setelah pertama login.</div>
+    </div>
+  </div>
+
+</div><!-- end body -->
+</div><!-- end mainApp -->
+
+<!-- MODAL: Bayar Anggota -->
+<div class="modal-bg" id="modalMemberPay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalMemberPay')">✕</button>
+    <div class="modal-title">💳 Bayar Iuran Wifi</div>
+
+    <!-- Step 1: Input nama -->
+    <div id="mpStep1">
+      <div style="font-size:13px;color:#555;margin-bottom:14px">Masukkan nama kamu terlebih dahulu sebelum melanjutkan pembayaran.</div>
+      <div class="label-sm" style="margin-bottom:6px">Nama Kamu</div>
+      <input type="text" id="mpName" placeholder="Contoh: Budi Santoso" style="margin-bottom:10px">
+      <div class="err" id="mpNameErr"></div>
+      <button class="btn-primary" onclick="mpNext()" style="margin-top:6px">Lanjut →</button>
+    </div>
+
+    <!-- Step 2: Pilih metode -->
+    <div id="mpStep2" style="display:none">
+      <div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#2D3FE0;font-weight:600">
+        Halo, <span id="mpNameDisplay"></span>! Pilih cara pembayaran:
+      </div>
+
+      <!-- Info Rekening -->
+      <div class="rekening-box">
+        <div style="font-size:12px;color:#555;font-weight:600">🏦 Transfer via Mandiri</div>
+        <div class="rekening-num">1540015451309</div>
+        <div style="font-size:11px;color:#888">a.n. Julianto Halim</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="copyRekening()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #16a34a;background:#fff;color:#16a34a;font-weight:700;font-size:12px;cursor:pointer">📋 Salin No. Rek</button>
+          <button onclick="openLivin()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#f59e0b;color:#fff;font-weight:700;font-size:12px;cursor:pointer">📱 Buka Livin</button>
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:#888;margin-bottom:12px;text-align:center">— atau —</div>
+
+      <button onclick="mpSudahBayar()" style="width:100%;background:#25D366;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.558 4.112 1.528 5.837L.057 23.888a.5.5 0 0 0 .608.61l6.157-1.617A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.894 0-3.668-.52-5.189-1.428l-.371-.22-3.853 1.011 1.03-3.76-.242-.387A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg> Konfirmasi via WhatsApp</button>
+
+      <div style="font-size:11px;color:#aaa;text-align:center;margin-top:10px">Kamu akan diarahkan ke WhatsApp Admin untuk konfirmasi</div>
+    </div>
+
+    <!-- Step 3: Konfirmasi sukses -->
+    <div id="mpStep3" style="display:none">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px">✅</div>
+        <div style="font-weight:700;font-size:16px;margin-top:10px">Terima kasih!</div>
+        <div style="font-size:13px;color:#888;margin-top:6px">Pesan WhatsApp sudah dikirim ke Admin</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px">Admin akan segera mengkonfirmasi pembayaran <b id="mpNameFinal"></b>.</div>
+        <button onclick="closeModal('modalMemberPay')" style="margin-top:16px;background:#2D3FE0;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Pending Payments (Admin) -->
+<div class="modal-bg" id="modalPending">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalPending')">✕</button>
+    <div class="modal-title">⏳ Menunggu Konfirmasi</div>
+    <div id="pendingList"></div>
+  </div>
+</div>
+
+<!-- MODAL: Catatan Tidak Wajib -->
+<div class="modal-bg" id="modalExemptNote">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalExemptNote')">✕</button>
+    <div class="modal-title">⊘ Tandai Tidak Wajib</div>
+    <input type="hidden" id="exemptModalMemberId">
+    <input type="hidden" id="exemptModalMk">
+    <div style="background:#fef9c3;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#92400e">
+      Anggota: <b id="exemptModalName"></b>
+    </div>
+    <div class="label-sm" style="margin-bottom:6px">Alasan Tidak Wajib (wajib diisi)</div>
+    <input type="text" id="exemptModalNote" placeholder="Contoh: Pulang kampung, Pindah kost, Cuti">
+    <div style="font-size:11px;color:#aaa;margin-top:4px;margin-bottom:14px">Alasan ini akan terlihat oleh anggota</div>
+    <button onclick="saveExemptNote()" style="width:100%;background:linear-gradient(135deg,#2D3FE0,#5B4FE9);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">⊘ Simpan & Tandai Tidak Wajib</button>
+  </div>
+</div>
+
+<!-- MODAL: Lihat Foto Bukti -->
+<div class="modal-bg" id="modalFoto">
+  <div class="modal" style="text-align:center;padding:16px">
+    <button class="modal-close" onclick="closeModal('modalFoto')">✕</button>
+    <div class="modal-title" id="modalFotoTitle">Bukti Pengeluaran</div>
+    <img id="modalFotoImg" src="" style="width:100%;border-radius:12px;margin-top:10px;max-height:70vh;object-fit:contain">
+  </div>
+</div>
+
+<!-- MODAL: Detail Pembayaran Iuran -->
+<div class="modal-bg" id="modalDues">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalDues')">✕</button>
+    <div class="modal-title" id="modalDuesTitle">Detail Pembayaran</div>
+    <div id="modalDuesBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Stat Detail -->
+<div class="modal-bg" id="modalStat">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalStat')">✕</button>
+    <div class="modal-title" id="modalStatTitle">Detail</div>
+    <div id="modalStatBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Tandai Bayar -->
+<div class="modal-bg" id="modalPay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalPay')">✕</button>
+    <div class="modal-title">Catat Pembayaran Iuran</div>
+    <div class="form-group">
+      <div>
+        <div class="label-sm">Nama Anggota</div>
+        <input type="text" id="payMemberName" disabled style="background:#f3f4f6;color:#888">
+      </div>
+      <div>
+        <div class="label-sm">Bayar untuk bulan</div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center">
+          <div>
+            <div style="font-size:10px;color:#888;margin-bottom:3px">Dari</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <select id="payFromMonth">
+                <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option>
+                <option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option>
+                <option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option>
+                <option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
+              </select>
+              <select id="payFromYear">
+                <!-- tahun di-generate otomatis oleh JS -->
+              </select>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#888;text-align:center;padding-top:14px">s/d</div>
+          <div>
+            <div style="font-size:10px;color:#888;margin-bottom:3px">Sampai</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <select id="payToMonth">
+                <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option>
+                <option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option>
+                <option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option>
+                <option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
+              </select>
+              <select id="payToYear">
+                <!-- tahun di-generate otomatis oleh JS -->
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="label-sm">Tanggal Bayar</div>
+        <input type="date" id="payDate">
+      </div>
+      <div>
+        <div class="label-sm">Metode Pembayaran</div>
+        <select id="payMethod">
+          <option>Cash</option>
+          <option>Transfer</option>
+        </select>
+      </div>
+      <div>
+        <div class="label-sm">Keterangan (opsional)</div>
+        <input type="text" id="payNote" placeholder="Contoh: Transfer BCA, titip via Budi">
+      </div>
+      <button class="btn-primary" onclick="savePay()">✓ Simpan Pembayaran</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE PAGE (Mode Lihat Anggota) -->
+<div id="sharePage">
+  <div class="sp-header">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="header-label" style="color:#FACC15;letter-spacing:3px">⚡ Kas Electric DMLZ</div>
+        <div class="sp-title">⚡ KASCREW</div>
+        <div class="sp-sub">Mode Lihat — Anggota</div>
+      </div>
+      <button onclick="closeShare()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">✕ Tutup</button>
+    </div>
+  </div>
+  <div class="sp-body">
+    <div class="view-banner">👁️ Mode Lihat — Kamu tidak bisa mengubah data</div>
+    <button onclick="openPayFromShare()" style="width:100%;background:#FACC15;color:#0F172A;border:none;border-radius:12px;padding:14px;font-weight:900;font-size:15px;cursor:pointer;margin-bottom:14px;letter-spacing:0.5px">⚡ MAU BAYAR IURAN? KLIK DI SINI</button>
+    <div id="shareContent"></div>
+  </div>
+
+  <!-- Modal Bayar di dalam Share Page -->
+  <div id="sharePayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:flex-end;justify-content:center;display:none">
+    <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:fixed;bottom:0;left:0;right:0">
+      <button onclick="closePayFromShare()" style="float:right;background:#f3f4f6;border:none;border-radius:99px;width:28px;height:28px;cursor:pointer;font-size:14px">✕</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:16px">💳 Bayar Iuran Wifi</div>
+
+      <!-- Step 1 -->
+      <div id="spStep1">
+        <div style="font-size:13px;color:#555;margin-bottom:14px">Masukkan nama kamu terlebih dahulu.</div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px">Nama Kamu</div>
+        <input type="text" id="spName" placeholder="Contoh: Budi Santoso" style="width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;margin-bottom:8px">
+        <div style="color:#dc2626;font-size:12px" id="spNameErr"></div>
+        <button onclick="spNext()" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#2D3FE0,#5B4FE9);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Lanjut →</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="spStep2" style="display:none">
+        <div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#2D3FE0;font-weight:600">
+          Halo, <span id="spNameDisplay"></span>! Pilih cara pembayaran:
+        </div>
+        <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:16px;margin-bottom:12px">
+          <div style="font-size:12px;color:#555;font-weight:600">🏦 Transfer via Mandiri</div>
+          <div style="font-size:24px;font-weight:800;color:#16a34a;letter-spacing:2px;margin:8px 0">1540015451309</div>
+          <div style="font-size:11px;color:#888">a.n. Julianto Halim</div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button onclick="copyRekening()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #16a34a;background:#fff;color:#16a34a;font-weight:700;font-size:12px;cursor:pointer">📋 Salin No. Rek</button>
+            <button onclick="openLivin()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#f59e0b;color:#fff;font-weight:700;font-size:12px;cursor:pointer">📱 Buka Livin</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#888;margin-bottom:12px;text-align:center">— atau —</div>
+        <button onclick="spSudahBayar()" style="width:100%;background:#25D366;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">
+          📱 Konfirmasi via WhatsApp
+        </button>
+        <div style="font-size:11px;color:#aaa;text-align:center;margin-top:10px">Kamu akan diarahkan ke WhatsApp Admin</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="spStep3" style="display:none;text-align:center;padding:20px 0">
+        <div style="font-size:48px">✅</div>
+        <div style="font-weight:700;font-size:16px;margin-top:10px">Terima kasih!</div>
+        <div style="font-size:13px;color:#888;margin-top:6px">Pesan WhatsApp sudah dikirim ke Admin</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px">Admin akan segera mengkonfirmasi pembayaran <b id="spNameFinal"></b>.</div>
+        <button onclick="closePayFromShare()" style="margin-top:16px;background:#2D3FE0;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const MONTHS_FULL  = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const DUE_AMOUNT = 50000;
+
+let state = {
+  members: [
+    { id: 1, name: "Ivan Bangqaria" },
+    { id: 2, name: "M. Irwan" },
+    { id: 3, name: "Anis Palangan" },
+    { id: 4, name: "Eko Tanoto" },
+    { id: 5, name: "Romulus Yembise" },
+    { id: 6, name: "Ofik Hidayat" },
+    { id: 7, name: "Mario Everth Arrayan" },
+    { id: 8, name: "Aditya Hitipeuw" },
+    { id: 9, name: "Yonar Panggalo" },
+    { id: 10, name: "Muhammad Risaldi S" },
+    { id: 11, name: "Prengki Paisal Ronalmar" },
+    { id: 12, name: "Germanto Jibon" },
+    { id: 13, name: "Arlin Pamungkas" },
+    { id: 14, name: "Eko Susanto" },
+    { id: 15, name: "Doni Haloho" },
+    { id: 16, name: "Yusak Nuampa" },
+    { id: 17, name: "David Alberto Yoku" },
+    { id: 18, name: "Muhammad Saefur" },
+    { id: 19, name: "Bayu Galih Wibisono" },
+    { id: 20, name: "Suhendar" },
+    { id: 21, name: "Sofyan" },
+    { id: 22, name: "Kimanus Tabuni" },
+    { id: 23, name: "Frehdy Boro" },
+    { id: 24, name: "Marfasian Salvata Pasar" },
+    { id: 25, name: "Sutomo Setianto" },
+    { id: 26, name: "Kristian Suruan" },
+    { id: 27, name: "Sugeng Wahyudi" },
+    { id: 28, name: "Luki Achmad Setiawan" },
+    { id: 29, name: "Yulius Malino" },
+    { id: 30, name: "Yudiangsyah" },
+    { id: 31, name: "Samboaling Pasali" },
+    { id: 32, name: "Pardi" },
+    { id: 33, name: "Aprianto Boro Makamba" },
+    { id: 34, name: "Agus Mirati" },
+    { id: 35, name: "Imam Sefudin" },
+    { id: 36, name: "M. Syah Reza Pahlevi" },
+    { id: 37, name: "Marianto" },
+    { id: 38, name: "Mupni Munaf" },
+    { id: 39, name: "Septinus Kadam" },
+    { id: 40, name: "Julianto Halim" }
+  ],
+  // payments: { memberId: [ { fromKey:"YYYY-MM", toKey:"YYYY-MM", date, method, note } ] }
+  payments: {},
+  expenses: [],
+  incomes: [],
+  notes: []
+};
+
+let payingMemberId = null;
+
+// ─── SUPABASE CONFIG ───────────────────────────────────────
+const SUPABASE_URL = 'https://oohwveawsjhhlkqtybvz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_B1bgXkaMc3Xttz-OIXN80w_wNd6i813';
+const SB_HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY
+};
+const TABLE = 'kascrew_data';
+const ROW_KEY = 'main';
+
+let isSaving = false;
+let pendingSave = false;
+
+// ─── STORAGE ───────────────────────────────────────────────
+async function fetchState() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?key=eq.${ROW_KEY}&select=data`, { headers: SB_HEADERS });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  const rows = await res.json();
+  if (rows && rows.length > 0 && rows[0].data) {
+    let s = rows[0].data;
+    // Supabase JSONB kadang sudah object, kadang masih string
+    if (typeof s === 'string') s = JSON.parse(s);
+    return s;
+  }
+  return null;
+}
+
+function applyState(s) {
+  if (s) {
+    state = s;
+  }
+  if (!Array.isArray(state.members))  state.members  = [];
+  if (!Array.isArray(state.incomes))  state.incomes  = [];
+  if (!Array.isArray(state.expenses)) state.expenses = [];
+  if (!Array.isArray(state.notes))    state.notes    = [];
+  if (typeof state.payments !== 'object' || Array.isArray(state.payments)) state.payments = {};
+  if (typeof state.exempts  !== 'object' || Array.isArray(state.exempts))  state.exempts  = {};
+  if (!Array.isArray(state.deletedMembers))   state.deletedMembers   = [];
+  if (!Array.isArray(state.pendingPayments)) state.pendingPayments = [];
+  if (typeof state.exemptNotes !== 'object' || Array.isArray(state.exemptNotes)) state.exemptNotes = {};
+}
+
+async function load() {
+  const now = new Date();
+  document.getElementById("selMonth").value = now.getMonth();
+  document.getElementById("selYear").value  = now.getFullYear();
+
+  showLoading(true);
+  try {
+    const s = await fetchState();
+    applyState(s);
+  } catch(e) {
+    console.error('Load error:', e);
+    // fallback localStorage
+    try {
+      const ls = localStorage.getItem("kascrew-v2");
+      if (ls) applyState(JSON.parse(ls));
+    } catch(e2) {}
+  }
+  showLoading(false);
+  render();
+  renderPendingBadge();
+
+  // Polling realtime setiap 15 detik
+  setInterval(async () => {
+    if (isSaving) return;
+    try {
+      const s = await fetchState();
+      if (s) {
+        applyState(s);
+        render();
+        renderPendingBadge(); // update badge notif pending
+      }
+    } catch(e) { console.error('Poll error:', e); }
+  }, 8000);
+}
+
+async function save() {
+  // Simpan ke localStorage sebagai backup
+  localStorage.setItem("kascrew-v2", JSON.stringify(state));
+
+  if (isSaving) { pendingSave = true; return; }
+  isSaving = true;
+
+  const body = JSON.stringify({ key: ROW_KEY, data: state });
+  try {
+    // Coba upsert (POST dengan merge-duplicates)
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: {
+        ...SB_HEADERS,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Save response error:', errText);
+      throw new Error(errText);
+    }
+    // Tampilkan indikator tersimpan
+    const si = document.getElementById('syncIndicator');
+    if (si) { si.style.display='block'; setTimeout(()=>si.style.display='none',2000); }
+  } catch(e) {
+    console.error('Save error:', e);
+    showSaveError();
+  }
+
+  isSaving = false;
+  if (pendingSave) { pendingSave = false; await save(); }
+}
+
+function showLoading(show) {
+  let el = document.getElementById('loadingBar');
+  if (!el) return;
+  el.style.display = show ? 'block' : 'none';
+}
+
+function showSaveError() {
+  let el = document.getElementById('saveErrBanner');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+
+// ─── HELPERS ───────────────────────────────────────────────
+function getMK() {
+  const m = document.getElementById("selMonth").value;
+  const y = document.getElementById("selYear").value;
+  return `${y}-${String(+m+1).padStart(2,"0")}`;
+}
+function toKey(monthIdx, year) {
+  return `${year}-${String(+monthIdx+1).padStart(2,"0")}`;
+}
+function keyLabel(k) {
+  const [y,m] = k.split("-");
+  return MONTHS_SHORT[+m-1] + " " + y;
+}
+function fRp(n) { return "Rp " + Number(n||0).toLocaleString("id-ID"); }
+
+// Cek apakah member sudah bayar untuk bulan mk
+function isMemberPaid(memberId, mk) {
+  const pays = state.payments[memberId] || [];
+  return pays.some(p => p.fromKey <= mk && mk <= p.toKey);
+}
+// Ambil detail bayar untuk bulan mk
+function getPayDetail(memberId, mk) {
+  const pays = state.payments[memberId] || [];
+  return pays.find(p => p.fromKey <= mk && mk <= p.toKey) || null;
+}
+
+// Cek apakah member dikecualikan (tidak wajib) bulan mk
+function isExempt(memberId, mk) {
+  const exempts = state.exempts || {};
+  return !!(exempts[memberId] && exempts[memberId][mk]);
+}
+function toggleExempt(memberId) {
+  if (!state.exempts) state.exempts = {};
+  if (!state.exempts[memberId]) state.exempts[memberId] = {};
+  const mk = getMK();
+  if (state.exempts[memberId][mk]) {
+    // Batalkan
+    state.exempts[memberId][mk] = false;
+    if (state.exemptNotes && state.exemptNotes[memberId]) {
+      delete state.exemptNotes[memberId][mk];
+    }
+    save(); render();
+  } else {
+    // Set tidak wajib - minta alasan
+    openExemptNoteModal(memberId, mk);
+  }
+}
+
+function openExemptNoteModal(memberId, mk) {
+  document.getElementById('exemptModalMemberId').value = memberId;
+  document.getElementById('exemptModalMk').value = mk;
+  const m = state.members.find(x=>x.id===memberId);
+  document.getElementById('exemptModalName').textContent = m ? m.name : '';
+  document.getElementById('exemptModalNote').value =
+    (state.exemptNotes && state.exemptNotes[memberId] && state.exemptNotes[memberId][mk]) || '';
+  openModal('modalExemptNote');
+}
+
+function saveExemptNote() {
+  const memberId = +document.getElementById('exemptModalMemberId').value;
+  const mk = document.getElementById('exemptModalMk').value;
+  const note = document.getElementById('exemptModalNote').value.trim();
+  if (!state.exempts) state.exempts = {};
+  if (!state.exempts[memberId]) state.exempts[memberId] = {};
+  state.exempts[memberId][mk] = true;
+  if (!state.exemptNotes) state.exemptNotes = {};
+  if (!state.exemptNotes[memberId]) state.exemptNotes[memberId] = {};
+  state.exemptNotes[memberId][mk] = note || '-';
+  save(); render(); closeModal('modalExemptNote');
+}
+
+// ─── CALC ──────────────────────────────────────────────────
+function calcTotals() {
+  const mk = getMK();
+  const activeMembers = state.members.filter(m => !isExempt(m.id, mk));
+  const paidMembers = activeMembers.filter(m => isMemberPaid(m.id, mk));
+  const monthDues = paidMembers.length * DUE_AMOUNT;
+  const monthOtherInc = state.incomes.filter(i => i.date.startsWith(mk)).reduce((s,i)=>s+i.amount,0);
+  const monthExp = state.expenses.filter(e => e.date.startsWith(mk)).reduce((s,e)=>s+e.amount,0);
+  // Gabungkan member aktif + member yang sudah dihapus untuk hitung saldo
+  const allMembersForCalc = [
+    ...state.members,
+    ...(Array.isArray(state.deletedMembers) ? state.deletedMembers : [])
+  ];
+  const allDues = allMembersForCalc.reduce((s,m) => {
+    const pays = state.payments[m.id] || [];
+    // hitung bulan unik yang sudah dibayar
+    let count = 0;
+    pays.forEach(p => {
+      let cur = p.fromKey;
+      while(cur <= p.toKey) {
+        count++;
+        const [y,mo] = cur.split("-").map(Number);
+        const next = mo === 12 ? `${y+1}-01` : `${y}-${String(mo+1).padStart(2,"0")}`;
+        cur = next;
+      }
+    });
+    return s + count * DUE_AMOUNT;
+  }, 0);
+  const allOtherInc = state.incomes.reduce((s,i)=>s+i.amount,0);
+  const allExp = state.expenses.reduce((s,e)=>s+e.amount,0);
+  return { monthDues, monthOtherInc, monthExp,
+    monthTotalIn: monthDues + monthOtherInc,
+    saldo: allDues + allOtherInc - allExp,
+    paidCount: paidMembers.length,
+    activeCount: activeMembers.length };
+}
+
+// ─── RENDER ────────────────────────────────────────────────
+function render() {
+  if (!currentRole) return; // belum login
+  const isAdmin = currentRole === 'admin';
+  const mk = getMK();
+  const [y, mo] = mk.split("-");
+  const monthName = MONTHS_SHORT[+mo-1];
+  const { monthDues, monthOtherInc, monthExp, monthTotalIn, saldo, paidCount, activeCount } = calcTotals();
+  const total = state.members.length;
+
+  document.getElementById("saldoVal").textContent = fRp(saldo);
+  document.getElementById("hdrIncome").textContent = "▲ " + fRp(monthTotalIn);
+  document.getElementById("hdrOutcome").textContent = "▼ " + fRp(monthExp);
+
+  const exemptCount = state.members.filter(m=>isExempt(m.id,mk)).length;
+  const pendingCount = (state.pendingPayments||[]).filter(p=>p.status==='pending').length;
+  document.getElementById("statPaid").textContent = paidCount;
+  document.getElementById("statUnpaid").textContent = activeCount - paidCount;
+  document.getElementById("statExempt").textContent = exemptCount;
+  document.getElementById("statPending").textContent = pendingCount;
+  const pb = document.getElementById("statPendingBox");
+  if(pb) pb.style.background = pendingCount>0 ? '#fef08a' : '#f3f4f6';
+  document.getElementById("statIncome").textContent = fRp(monthTotalIn);
+  document.getElementById("statOutcome").textContent = fRp(monthExp);
+  document.getElementById("dashProgressTitle").textContent = `Progres Iuran ${monthName}`;
+  document.getElementById("progressText").textContent = `${paidCount}/${activeCount} wajib bayar`;
+  const pct = activeCount ? Math.round(paidCount/activeCount*100) : 0;
+  document.getElementById("progressPct").textContent = pct+"%";
+  document.getElementById("progressFill").style.width = pct+"%";
+
+  // dashboard income
+  const mIncs = state.incomes.filter(i=>i.date.startsWith(mk));
+  document.getElementById("dashIncTitle").textContent = `Pemasukan Lain ${monthName}`;
+  document.getElementById("dashIncList").innerHTML = mIncs.length
+    ? mIncs.slice(0,4).map(i=>`<div class="list-item"><div><div class="item-name">${i.desc}</div><div class="item-sub">${i.category} · ${i.date}</div></div><div style="color:#16a34a;font-weight:600">${fRp(i.amount)}</div></div>`).join("")
+    : '<div class="empty">Belum ada</div>';
+
+  // dashboard expenses
+  const mExps = state.expenses.filter(e=>e.date.startsWith(mk));
+  document.getElementById("dashExpTitle").textContent = `Pengeluaran ${monthName}`;
+  document.getElementById("dashExpList").innerHTML = mExps.length
+    ? mExps.slice(0,4).map(e=>`<div class="list-item"><div><div class="item-name">${e.desc}</div><div class="item-sub">${e.category} · ${e.date}</div></div><div style="display:flex;align-items:center;gap:8px"><div style="color:#ef4444;font-weight:600">${fRp(e.amount)}</div>${e.photo?`<span style="font-size:10px;color:#2D3FE0;cursor:pointer" onclick="lihatFoto('${e.desc}','${e.photo}')">📎</span>`:''}</div></div>`).join("")
+    : '<div class="empty">Belum ada</div>';
+
+  // DUES LIST
+  document.getElementById("duesSubtitle").textContent = `${monthName} ${y} · ${fRp(DUE_AMOUNT)}/orang`;
+  document.getElementById("duesTotalLabel").textContent = `Total Terkumpul ${monthName}`;
+  document.getElementById("duesTotalVal").textContent = fRp(monthDues);
+  const duesList = document.getElementById("duesList");
+  if (!state.members.length) {
+    duesList.innerHTML = '<div class="empty">Belum ada anggota</div>';
+  } else {
+    duesList.innerHTML = state.members.map(m => {
+      const paid = isMemberPaid(m.id, mk);
+      const detail = getPayDetail(m.id, mk);
+      const pays = state.payments[m.id] || [];
+      // cari bayar terakhir / terlanjut
+      const latest = pays.length ? pays[pays.length-1] : null;
+      const paidUntil = latest ? keyLabel(latest.toKey) : "-";
+      const exempt = isExempt(m.id, mk);
+      return `<div class="list-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div class="avatar" style="background:${exempt?'#f3f4f6':paid?'#dcfce7':'#fee2e2'};color:${exempt?'#9ca3af':paid?'#16a34a':'#dc2626'}">${m.name[0]}</div>
+          <div style="flex:1">
+            <div class="item-name">${m.name}</div>
+            <div class="item-sub">
+              ${exempt
+                ? `— Tidak wajib · ${(state.exemptNotes&&state.exemptNotes[m.id]&&state.exemptNotes[m.id][mk])||'Tidak wajib bulan ini'}`
+                : paid
+                  ? `✓ Lunas · ${detail.method} · ${detail.date} · s/d <b>${keyLabel(detail.toKey)}</b>`
+                  : `✗ Belum bayar bulan ini`}
+            </div>
+            ${pays.length ? `<div style="font-size:10px;color:#2D3FE0;margin-top:2px">Bayar s/d: ${paidUntil} · <span style="cursor:pointer;text-decoration:underline" onclick="showMemberDetail(${m.id})">Lihat Riwayat</span></div>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${currentRole==='admin' ? `
+            ${exempt
+              ? `<button class="btn-sm" style="background:#fef9c3;color:#92400e" onclick="toggleExempt(${m.id})">✕ Batalkan</button>`
+              : `<button class="btn-sm ${paid?'btn-paid':'btn-unpaid'}" onclick="openPay(${m.id})">${paid?'✓ Edit':'⚡ Bayar'}</button>`
+            }
+            <button class="btn-sm" style="background:${exempt?'#f3f4f6':'#fef9c3'};color:${exempt?'#9ca3af':'#92400e'}" onclick="toggleExempt(${m.id})" title="Tandai tidak wajib bayar bulan ini">⊘</button>
+          ` : ''}
+          ${pays.length ? `<button class="btn-sm" style="background:#f3f4f6;color:#555" onclick="showMemberDetail(${m.id})">📋</button>` : ''}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // INCOME LIST
+  document.getElementById("incListTitle").textContent = `Pemasukan Lain ${monthName}`;
+  const incList = document.getElementById("incList");
+  const incTotal = document.getElementById("incTotal");
+  if (!mIncs.length) {
+    incList.innerHTML = '<div class="empty">Belum ada</div>';
+    incTotal.style.display = "none";
+  } else {
+    incList.innerHTML = mIncs.map(i=>`
+      <div class="list-item">
+        <div style="flex:1"><div class="item-name">${i.desc}</div><div class="item-sub">${i.category} · ${i.date}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="color:#16a34a;font-weight:700">${fRp(i.amount)}</span>
+          ${isAdmin?`<button class="btn-del" onclick="deleteIncome(${i.id})">Hapus</button>`:''}
+        </div>
+      </div>`).join("");
+    incTotal.style.display = "flex";
+    document.getElementById("incTotalVal").textContent = fRp(monthOtherInc);
+  }
+
+  // EXPENSE LIST
+  document.getElementById("expListTitle").textContent = `Pengeluaran ${monthName}`;
+  const expList = document.getElementById("expList");
+  const expTotal = document.getElementById("expTotal");
+  if (!mExps.length) {
+    expList.innerHTML = '<div class="empty">Belum ada</div>';
+    expTotal.style.display = "none";
+  } else {
+    expList.innerHTML = mExps.map(e=>`
+      <div class="list-item" style="align-items:flex-start">
+        <div style="flex:1">
+          <div class="item-name">${e.desc}</div>
+          <div class="item-sub">${e.category} · ${e.date}</div>
+          ${e.photo ? `<img src="${e.photo}" class="foto-thumb" style="margin-top:6px" onclick="lihatFoto('${e.desc}','${e.photo}')" title="Lihat bukti">` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:80px">
+          <span style="color:#ef4444;font-weight:700">${fRp(e.amount)}</span>
+          ${e.photo ? `<span style="font-size:10px;color:#2D3FE0;cursor:pointer" onclick="lihatFoto('${e.desc}','${e.photo}')">📎 Lihat Bukti</span>` : ''}
+          ${isAdmin?`<button class="btn-del" onclick="deleteExpense(${e.id})">Hapus</button>`:''}
+        </div>
+      </div>`).join("");
+    expTotal.style.display = "flex";
+    document.getElementById("expTotalVal").textContent = fRp(monthExp);
+  }
+
+  // MEMBERS
+  document.getElementById("memberTitle").textContent = `Daftar Anggota (${state.members.length})`;
+  const memList = document.getElementById("memberList");
+  memList.innerHTML = state.members.length
+    ? state.members.map(m=>`
+      <div class="list-item">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:#eff6ff;color:#2D3FE0">${m.name[0]}</div>
+          <span style="font-weight:500">${m.name}</span>
+        </div>
+        ${isAdmin?`<button class="btn-del" onclick="deleteMember(${m.id})">Hapus</button>`:''}
+      </div>`).join("")
+    : '<div class="empty">Belum ada anggota</div>';
+
+  // Sembunyikan form untuk member
+  ['cardAddExp','cardAddInc','cardAddMember','cardAddNote'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = isAdmin ? '' : 'none';
+  });
+  // Sembunyikan tombol hapus di expense & income list untuk member — handled inline via isAdmin
+
+  // NOTES
+  const noteList = document.getElementById("noteList");
+  noteList.innerHTML = state.notes.length
+    ? state.notes.map(n=>`
+      <div class="note-item">
+        <div style="font-weight:600;font-size:14px">${n.title}</div>
+        <div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${n.body}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+          <div class="note-date">${n.date}</div>
+          ${isAdmin?`<button class="btn-del" onclick="deleteNote(${n.id})">Hapus</button>`:''}
+        </div>
+      </div>`).join("")
+    : '<div class="empty">Belum ada catatan</div>';
+}
+
+// ─── TAB ───────────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("page-"+tab).classList.add("active");
+  el.classList.add("active");
+  if (tab === 'history') renderHistory();
+}
+
+// ─── MODAL ─────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+// ─── DUES / PAYMENT ────────────────────────────────────────
+function openPay(memberId) {
+  payingMemberId = memberId;
+  const m = state.members.find(x=>x.id===memberId);
+  document.getElementById("payMemberName").value = m.name;
+  const now = new Date();
+  document.getElementById("payFromMonth").value = now.getMonth();
+  document.getElementById("payToMonth").value   = now.getMonth();
+  document.getElementById("payToYear").value    = now.getFullYear();
+  document.getElementById("payDate").value = now.toISOString().split("T")[0];
+  // Set tahun dari/sampai ke tahun sekarang
+  if(document.getElementById("payFromYear")) document.getElementById("payFromYear").value = now.getFullYear();
+  if(document.getElementById("payToYear"))   document.getElementById("payToYear").value   = now.getFullYear();
+  document.getElementById("payMethod").value = "Cash";
+  document.getElementById("payNote").value = "";
+  openModal("modalPay");
+}
+
+function savePay() {
+  const fromM = document.getElementById("payFromMonth").value;
+  const toM   = document.getElementById("payToMonth").value;
+  const toY   = document.getElementById("payToYear").value;
+  const date  = document.getElementById("payDate").value;
+  const method= document.getElementById("payMethod").value;
+  const note  = document.getElementById("payNote").value.trim();
+  if (!date) { alert("Tanggal bayar wajib diisi"); return; }
+  const fromY   = document.getElementById("payFromYear").value;
+  const fromKey = toKey(fromM, fromY);
+  const toKey2  = toKey(toM, toY);
+  if (fromKey > toKey2) { alert("Bulan awal tidak boleh lebih besar dari bulan akhir"); return; }
+  if (!state.payments[payingMemberId]) state.payments[payingMemberId] = [];
+  // hapus overlap dulu lalu tambah baru
+  state.payments[payingMemberId] = state.payments[payingMemberId].filter(p => p.toKey < fromKey || p.fromKey > toKey2);
+  state.payments[payingMemberId].push({ fromKey, toKey: toKey2, date, method, note });
+  state.payments[payingMemberId].sort((a,b)=>a.fromKey.localeCompare(b.fromKey));
+  save(); render(); closeModal("modalPay");
+}
+
+function showMemberDetail(memberId) {
+  const m = state.members.find(x=>x.id===memberId);
+  const pays = state.payments[memberId] || [];
+  document.getElementById("modalDuesTitle").textContent = `Riwayat Bayar: ${m.name}`;
+  document.getElementById("modalDuesBody").innerHTML = pays.length
+    ? pays.map(p=>`
+      <div class="list-item">
+        <div>
+          <div class="item-name">${keyLabel(p.fromKey)} – ${keyLabel(p.toKey)}</div>
+          <div class="item-sub">Bayar: ${p.date} · <b>${p.method}</b>${p.note?' · '+p.note:''}</div>
+        </div>
+        <span class="badge badge-green">Lunas</span>
+      </div>`).join("")
+    : '<div class="empty">Belum ada riwayat</div>';
+  openModal("modalDues");
+}
+
+// ─── INCOME ────────────────────────────────────────────────
+function addIncome() {
+  const date = document.getElementById("incDate").value;
+  const desc = document.getElementById("incDesc").value.trim();
+  const amount = parseInt(document.getElementById("incAmount").value,10);
+  const category = document.getElementById("incCat").value;
+  const errEl = document.getElementById("incError");
+  if (!date||!desc||!amount||amount<=0) { errEl.textContent="Semua kolom wajib diisi."; return; }
+  errEl.textContent="";
+  if(!Array.isArray(state.incomes)) state.incomes=[];
+  state.incomes.unshift({id:Date.now(),date,desc,amount,category});
+  document.getElementById("incDate").value="";
+  document.getElementById("incDesc").value="";
+  document.getElementById("incAmount").value="";
+  save(); render();
+}
+function deleteIncome(id) {
+  if(!confirm("Hapus pemasukan ini?"))return;
+  state.incomes=state.incomes.filter(i=>i.id!==id);
+  save();render();
+}
+
+// ─── EXPENSES ──────────────────────────────────────────────
+function addExpense() {
+  const date=document.getElementById("expDate").value;
+  const desc=document.getElementById("expDesc").value.trim();
+  const amount=parseInt(document.getElementById("expAmount").value,10);
+  const category=document.getElementById("expCat").value;
+  const errEl=document.getElementById("expError");
+  if(!date||!desc||!amount||amount<=0){errEl.textContent="Semua kolom wajib diisi.";return;}
+  errEl.textContent="";
+  if(!Array.isArray(state.expenses)) state.expenses=[];
+
+  const photoFile = document.getElementById("expPhoto")?.files[0];
+  if (photoFile) {
+    if (photoFile.size > 5*1024*1024) { errEl.textContent="Foto max 5MB"; return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      state.expenses.unshift({id:Date.now(),date,desc,amount,category,photo:e.target.result});
+      document.getElementById("expDate").value="";
+      document.getElementById("expDesc").value="";
+      document.getElementById("expAmount").value="";
+      document.getElementById("expPhoto").value="";
+      save(); render();
+    };
+    reader.readAsDataURL(photoFile);
+  } else {
+    state.expenses.unshift({id:Date.now(),date,desc,amount,category,photo:null});
+    document.getElementById("expDate").value="";
+    document.getElementById("expDesc").value="";
+    document.getElementById("expAmount").value="";
+    save(); render();
+  }
+}
+function deleteExpense(id){
+  if(!confirm("Hapus pengeluaran ini?"))return;
+  state.expenses=state.expenses.filter(e=>e.id!==id);
+  save();render();
+}
+
+// ─── MEMBERS ───────────────────────────────────────────────
+function addMember(){
+  const name=document.getElementById("memberInput").value.trim();
+  if(!name)return;
+  if(!Array.isArray(state.members)) state.members=[];
+  state.members.push({id:Date.now(),name});
+  document.getElementById("memberInput").value="";
+  save();render();
+}
+function deleteMember(id){
+  if(!confirm("Hapus anggota ini? Data pembayaran tetap tersimpan dan tidak mempengaruhi saldo."))return;
+  // Simpan ke deletedMembers agar saldo tetap terhitung
+  if(!Array.isArray(state.deletedMembers)) state.deletedMembers=[];
+  const member = state.members.find(m=>m.id===id);
+  if(member && !state.deletedMembers.find(m=>m.id===id)) {
+    state.deletedMembers.push(member);
+  }
+  // Hapus dari list aktif tapi JANGAN hapus payments & exempts
+  state.members=state.members.filter(m=>m.id!==id);
+  save();render();
+}
+
+// ─── NOTES ─────────────────────────────────────────────────
+function addNote(){
+  const title=document.getElementById("noteTitle").value.trim();
+  const body=document.getElementById("noteBody").value.trim();
+  if(!title||!body){alert("Judul dan isi catatan wajib diisi");return;}
+  const now=new Date();
+  if(!Array.isArray(state.notes)) state.notes=[];
+  state.notes.unshift({id:Date.now(),title,body,date:now.toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"})});
+  document.getElementById("noteTitle").value="";
+  document.getElementById("noteBody").value="";
+  save();render();
+}
+function deleteNote(id){
+  if(!confirm("Hapus catatan ini?"))return;
+  state.notes=state.notes.filter(n=>n.id!==id);
+  save();render();
+}
+
+// ─── SHARE (MODE LIHAT) ────────────────────────────────────
+let shareMonths  = []; // array of mk yang dipilih untuk share
+let shareShowAll = false; // toggle lihat semua anggota di tabel
+let shareHistAll = false; // toggle lihat semua riwayat
+let shareExpAll  = {};   // toggle lihat semua pengeluaran per bulan { mk: bool }
+
+function openShare() {
+  shareMonths  = [getMK()];
+  shareShowAll = false;
+  shareHistAll = false;
+  shareExpAll  = {};
+  renderSharePage();
+  document.getElementById("sharePage").style.display = "block";
+  document.body.style.overflow = "hidden";
+}
+
+function renderSharePage() {
+  const now = new Date();
+  const {saldo} = calcTotals();
+
+  // Generate 24 bulan pilihan (12 bulan lalu s/d 12 bulan depan)
+  const allMonthOptions = [];
+  const base = new Date(); base.setDate(1);
+  base.setMonth(base.getMonth() - 12);
+  for (let i = 0; i < 24; i++) {
+    const mk = `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,"0")}`;
+    allMonthOptions.push(mk);
+    base.setMonth(base.getMonth()+1);
+  }
+
+  // Filter UI
+  let filterHtml = `<div class="card" style="margin-bottom:12px">
+    <div style="font-weight:700;margin-bottom:10px;font-size:14px">📅 Pilih Bulan Iuran</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${allMonthOptions.map(mk=>{
+        const [y,mo] = mk.split("-");
+        const label = MONTHS_SHORT[+mo-1]+" "+y;
+        const active = shareMonths.includes(mk);
+        return `<button onclick="toggleShareMonth('${mk}')" style="padding:5px 10px;border-radius:99px;border:1.5px solid ${active?'#2D3FE0':'#e5e7eb'};background:${active?'#2D3FE0':'#fff'};color:${active?'#fff':'#555'};font-size:11px;font-weight:600;cursor:pointer">${label}</button>`;
+      }).join("")}
+    </div>
+    <button onclick="selectAllShareMonths()" style="font-size:11px;background:#f3f4f6;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;margin-right:6px">Pilih Semua</button>
+    <button onclick="clearShareMonths()" style="font-size:11px;background:#fee2e2;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;color:#dc2626">Hapus Pilihan</button>
+  </div>`;
+
+  // Saldo card
+  let html = filterHtml + `
+    <div class="card">
+      <div class="card-title">📊 Saldo Kas</div>
+      <div style="font-size:24px;font-weight:800;color:#2D3FE0">${fRp(saldo)}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Update: ${now.toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"})}</div>
+    </div>`;
+
+  if (shareMonths.length === 0) {
+    html += `<div class="card"><div class="empty">Pilih minimal 1 bulan di atas</div></div>`;
+  } else {
+    // Tabel iuran style excel
+    const sortedMonths = [...shareMonths].sort();
+    // hitung wajib & lunas per bulan
+    const paidPerMonth = {};
+    const activePerMonth = {};
+    sortedMonths.forEach(mk => {
+      activePerMonth[mk] = state.members.filter(m=>!isExempt(m.id,mk)).length;
+      paidPerMonth[mk]   = state.members.filter(m=>!isExempt(m.id,mk)&&isMemberPaid(m.id,mk)).length;
+    });
+
+    html += `<div class="card" style="overflow-x:auto;padding:12px 8px">
+      <div class="card-title">💳 Iuran Wifi</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:${200+sortedMonths.length*70}px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px 6px;border-bottom:2px solid #e5e7eb;position:sticky;left:0;background:#fff;white-space:nowrap;min-width:130px">Nama</th>
+            ${sortedMonths.map(mk=>{
+              const [y,mo]=mk.split("-");
+              return `<th style="text-align:center;padding:8px 6px;border-bottom:2px solid #e5e7eb;white-space:nowrap;color:#2D3FE0">${MONTHS_SHORT[+mo-1]}<br><span style="font-weight:400;color:#888;font-size:10px">${y}</span></th>`;
+            }).join("")}
+          </tr>
+        </thead>
+        <tbody id="shareTableBody">
+          ${(shareShowAll ? state.members : state.members.slice(0,15)).map((m,idx)=>{
+            const bg = idx%2===0?'#fff':'#f9fafb';
+            return `<tr style="background:${bg}">
+              <td style="padding:7px 6px;border-bottom:1px solid #f3f4f6;font-weight:500;position:sticky;left:0;background:${bg}">${m.name}</td>
+              ${sortedMonths.map(mk=>{
+                const exempt = isExempt(m.id,mk);
+                const paid   = isMemberPaid(m.id,mk);
+                const detail = getPayDetail(m.id,mk);
+                let cell, title='';
+                if (exempt) {
+                  cell = `<span style="color:#9ca3af;font-size:11px">—</span>`;
+                  const enote = (state.exemptNotes&&state.exemptNotes[m.id]&&state.exemptNotes[m.id][mk])||'Tidak wajib';
+                  title = enote;
+                } else if (paid) {
+                  cell = `<span style="color:#16a34a;font-weight:700">50.000</span>`;
+                  title = detail ? detail.method+' · '+detail.date : 'Lunas';
+                } else {
+                  cell = `<span style="color:#ef4444;font-weight:700">0</span>`;
+                  title = 'Belum bayar';
+                }
+                return `<td style="text-align:center;padding:7px 4px;border-bottom:1px solid #f3f4f6" title="${title}">${cell}</td>`;
+              }).join("")}
+            </tr>`;
+          }).join("")}
+        </tbody>
+        <tfoot>
+          <tr style="background:#eff6ff">
+            <td style="padding:8px 6px;font-weight:700;position:sticky;left:0;background:#eff6ff">Total</td>
+            ${sortedMonths.map(mk=>`<td style="text-align:center;padding:8px 4px;font-weight:700;color:#2D3FE0">${fRp(paidPerMonth[mk]*DUE_AMOUNT).replace('Rp ','')}</td>`).join("")}
+          </tr>
+          <tr style="background:#f0fdf4">
+            <td style="padding:6px 6px;font-size:11px;color:#666;position:sticky;left:0;background:#f0fdf4">Lunas/Wajib</td>
+            ${sortedMonths.map(mk=>`<td style="text-align:center;padding:6px 4px;font-size:11px;color:#16a34a;font-weight:600">${paidPerMonth[mk]}/${activePerMonth[mk]}</td>`).join("")}
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+
+    // Tombol lihat semua anggota jika > 15
+    if (state.members.length > 15) {
+      html += `<div style="text-align:center;margin-bottom:10px">
+        <button onclick="toggleShareAll()" style="background:#eff6ff;border:1.5px solid #2D3FE0;color:#2D3FE0;border-radius:99px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer">
+          ${shareShowAll ? '▲ Sembunyikan' : '▼ Lihat Semua '+state.members.length+' Anggota'}
+        </button>
+      </div>`;
+    }
+  }
+
+  // History pending payments
+  const allPending = (state.pendingPayments || []);
+  if (allPending.length) {
+    html += `<div class="card">
+      <div class="card-title">📋 Riwayat Pembayaran Via Transfer</div>
+      ${allPending.slice().reverse().map(p=>`
+        <div class="history-item">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:600;font-size:14px">${p.name}</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">${p.date} · ${p.time}</div>
+            </div>
+            <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:${
+              p.status==='confirmed'?'#dcfce7':p.status==='rejected'?'#fee2e2':'#fef9c3'
+            };color:${
+              p.status==='confirmed'?'#16a34a':p.status==='rejected'?'#dc2626':'#92400e'
+            }">${
+              p.status==='confirmed'?'✓ Dikonfirmasi':p.status==='rejected'?'✕ Ditolak':'⏳ Menunggu'
+            }</span>
+          </div>
+        </div>`).join("")}
+    </div>`;
+  }
+
+  document.getElementById("shareContent").innerHTML = html;
+}
+
+function toggleShareAll() { shareShowAll = !shareShowAll; renderSharePage(); }
+function toggleShareHist() { shareHistAll = !shareHistAll; renderSharePage(); }
+function toggleShareExp(mk) { shareExpAll[mk] = !shareExpAll[mk]; renderSharePage(); }
+
+function toggleShareMonth(mk) {
+  if (shareMonths.includes(mk)) {
+    shareMonths = shareMonths.filter(m=>m!==mk);
+  } else {
+    shareMonths.push(mk);
+  }
+  renderSharePage();
+}
+function selectAllShareMonths() {
+  const base = new Date(); base.setDate(1); base.setMonth(base.getMonth()-12);
+  shareMonths = [];
+  for (let i=0;i<24;i++) {
+    shareMonths.push(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,"0")}`);
+    base.setMonth(base.getMonth()+1);
+  }
+  renderSharePage();
+}
+function clearShareMonths() { shareMonths=[]; renderSharePage(); }
+
+function closeShare() {
+  document.getElementById("sharePage").style.display = "none";
+  document.body.style.overflow = "";
+}
+
+// ─── HISTORY IURAN ─────────────────────────────────────────
+function renderHistory() {
+  const search  = (document.getElementById('histSearch')?.value || '').toLowerCase();
+  const selYear = document.getElementById('histYear')?.value  || '';
+  const selMon  = document.getElementById('histMonth')?.value || '';
+
+  // Generate pilihan tahun
+  const histYearEl = document.getElementById('histYear');
+  if (histYearEl && histYearEl.options.length === 0) {
+    const now = new Date().getFullYear();
+    for (let y = now - 3; y <= now + 1; y++) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      if (y === now) opt.selected = true;
+      histYearEl.appendChild(opt);
+    }
+  }
+
+  const year = document.getElementById('histYear')?.value || new Date().getFullYear();
+
+  // Kumpulkan semua pembayaran dari semua anggota (aktif + dihapus)
+  const allMembers = [
+    ...(state.members || []),
+    ...(state.deletedMembers || [])
+  ];
+
+  // Buat data per anggota
+  let rows = [];
+  allMembers.forEach(m => {
+    if (search && !m.name.toLowerCase().includes(search)) return;
+    const pays = state.payments[m.id] || [];
+    pays.forEach(p => {
+      // Expand range bulan
+      let cur = p.fromKey;
+      while (cur <= p.toKey) {
+        const [y, mo] = cur.split('-');
+        const moStr = String(mo).padStart(2,'0');
+        if (y === String(year) && (!selMon || moStr === selMon)) {
+          rows.push({
+            name: m.name,
+            monthKey: cur,
+            monthLabel: MONTHS_SHORT[+mo-1] + ' ' + y,
+            date: p.date,
+            method: p.method,
+            note: p.note || '',
+            deleted: !state.members.find(x=>x.id===m.id)
+          });
+        }
+        const nextMo = +mo === 12 ? 1 : +mo + 1;
+        const nextY  = +mo === 12 ? +y + 1 : +y;
+        cur = `${nextY}-${String(nextMo).padStart(2,'0')}`;
+      }
+    });
+  });
+
+  // Urutkan by bulan lalu nama
+  rows.sort((a,b) => a.monthKey.localeCompare(b.monthKey) || a.name.localeCompare(b.name));
+
+  const el = document.getElementById('historyContent');
+  if (!el) return;
+
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">Belum ada riwayat iuran untuk tahun ' + year + '</div>';
+    return;
+  }
+
+  // Group by bulan
+  const grouped = {};
+  rows.forEach(r => {
+    if (!grouped[r.monthKey]) grouped[r.monthKey] = { label: r.monthLabel, items: [] };
+    grouped[r.monthKey].items.push(r);
+  });
+
+  let html = '';
+  Object.keys(grouped).sort().forEach(mk => {
+    const g = grouped[mk];
+    html += `<div style="margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;color:#2D3FE0;margin-bottom:8px;padding:6px 10px;background:#eff6ff;border-radius:8px">
+        📅 ${g.label} — ${g.items.length} anggota
+      </div>`;
+    g.items.forEach(r => {
+      html += `<div class="list-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div class="avatar" style="background:#dcfce7;color:#16a34a;width:32px;height:32px;font-size:12px">${r.name[0]}</div>
+          <div>
+            <div class="item-name">${r.name}${r.deleted?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">(keluar)</span>':''}</div>
+            <div class="item-sub">${r.method} · ${r.date}${r.note?' · '+r.note:''}</div>
+          </div>
+        </div>
+        <span style="color:#16a34a;font-weight:700;font-size:13px">Rp 50.000</span>
+      </div>`;
+    });
+    const total = g.items.length * 50000;
+    html += `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;font-weight:700;color:#2D3FE0;border-top:1px solid #e5e7eb;margin-top:4px">
+      <span>Total ${g.label}</span><span>${fRp(total)}</span>
+    </div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ─── FOTO BUKTI ────────────────────────────────────────────
+function lihatFoto(desc, src) {
+  document.getElementById('modalFotoTitle').textContent = desc;
+  document.getElementById('modalFotoImg').src = src;
+  openModal('modalFoto');
+}
+
+// ─── STAT MODAL ────────────────────────────────────────────
+function openStatModal(type) {
+  const mk = getMK();
+  const [y, mo] = mk.split("-");
+  const monthName = MONTHS_FULL[+mo-1];
+  let title = '';
+  let html  = '';
+
+  if (type === 'paid') {
+    title = `✅ Sudah Bayar — ${monthName} ${y}`;
+    const paidMembers = state.members.filter(m => !isExempt(m.id,mk) && isMemberPaid(m.id,mk));
+    if (!paidMembers.length) {
+      html = '<div class="empty">Belum ada yang bayar</div>';
+    } else {
+      html = paidMembers.map(m => {
+        const detail = getPayDetail(m.id, mk);
+        return `<div class="list-item">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar" style="background:#dcfce7;color:#16a34a;width:32px;height:32px;font-size:13px">${m.name[0]}</div>
+            <div>
+              <div class="item-name">${m.name}</div>
+              <div class="item-sub">${detail ? detail.method+' · '+detail.date+' · s/d '+keyLabel(detail.toKey) : 'Lunas'}</div>
+            </div>
+          </div>
+          <span class="badge badge-green">Lunas</span>
+        </div>`;
+      }).join("");
+      html += `<div style="margin-top:10px;font-size:12px;color:#16a34a;font-weight:700;text-align:right">${paidMembers.length} anggota · ${fRp(paidMembers.length * DUE_AMOUNT)}</div>`;
+    }
+  }
+
+  else if (type === 'unpaid') {
+    title = `❌ Belum Bayar — ${monthName} ${y}`;
+    // Belum bayar = wajib bayar tapi belum lunas (tidak termasuk tidak wajib)
+    const unpaidMembers = state.members.filter(m => !isExempt(m.id,mk) && !isMemberPaid(m.id,mk));
+    if (!unpaidMembers.length) {
+      html = '<div class="empty">Semua sudah bayar! 🎉</div>';
+    } else {
+      html = unpaidMembers.map(m => {
+        const pays = state.payments[m.id] || [];
+        const latest = pays.length ? pays[pays.length-1] : null;
+        return `<div class="list-item">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar" style="background:#fee2e2;color:#dc2626;width:32px;height:32px;font-size:13px">${m.name[0]}</div>
+            <div>
+              <div class="item-name">${m.name}</div>
+              <div class="item-sub">${latest ? 'Terakhir bayar s/d '+keyLabel(latest.toKey) : 'Belum pernah bayar'}</div>
+            </div>
+          </div>
+          <span class="badge badge-red">Belum</span>
+        </div>`;
+      }).join("");
+      html += `<div style="margin-top:10px;font-size:12px;color:#ef4444;font-weight:700;text-align:right">${unpaidMembers.length} anggota belum bayar</div>`;
+    }
+  }
+
+  else if (type === 'exempt') {
+    title = `⊘ Tidak Wajib — ${monthName} ${y}`;
+    const exemptMembers = state.members.filter(m => isExempt(m.id,mk));
+    if (!exemptMembers.length) {
+      html = '<div class="empty">Tidak ada anggota yang dikecualikan bulan ini</div>';
+    } else {
+      html = exemptMembers.map(m => {
+        return `<div class="list-item">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar" style="background:#f3f4f6;color:#9ca3af;width:32px;height:32px;font-size:13px">${m.name[0]}</div>
+            <div>
+              <div class="item-name">${m.name}</div>
+              <div class="item-sub">${(state.exemptNotes&&state.exemptNotes[m.id]&&state.exemptNotes[m.id][mk])||'Tidak wajib bulan ini'}</div>
+            </div>
+          </div>
+          <span class="badge badge-gray">Dikecualikan</span>
+        </div>`;
+      }).join("");
+      html += `<div style="margin-top:10px;font-size:12px;color:#6b7280;font-weight:700;text-align:right">${exemptMembers.length} anggota dikecualikan</div>`;
+    }
+  }
+
+  else if (type === 'income') {
+    title = `💚 Total Masuk — ${monthName} ${y}`;
+    const mIncs = state.incomes.filter(i=>i.date.startsWith(mk));
+    const paidMembers = state.members.filter(m => !isExempt(m.id,mk) && isMemberPaid(m.id,mk));
+    const iuranTotal = paidMembers.length * DUE_AMOUNT;
+    const otherTotal = mIncs.reduce((s,i)=>s+i.amount,0);
+
+    html = `<div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;color:#888;margin-bottom:4px">Iuran Wajib (${paidMembers.length} anggota)</div>
+      <div style="font-weight:700;color:#16a34a;font-size:16px">${fRp(iuranTotal)}</div>
+    </div>`;
+
+    if (mIncs.length) {
+      html += `<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px">Pemasukan Lain:</div>`;
+      html += mIncs.map(i=>`<div class="list-item">
+        <div><div class="item-name">${i.desc}</div><div class="item-sub">${i.category} · ${i.date}</div></div>
+        <span style="color:#16a34a;font-weight:700">${fRp(i.amount)}</span>
+      </div>`).join("");
+    }
+    html += `<div style="margin-top:12px;display:flex;justify-content:space-between;font-weight:700;border-top:2px solid #f3f4f6;padding-top:10px">
+      <span>Total Masuk</span><span style="color:#16a34a">${fRp(iuranTotal+otherTotal)}</span>
+    </div>`;
+  }
+
+  else if (type === 'expense') {
+    title = `🧾 Pengeluaran — ${monthName} ${y}`;
+    const mExps = state.expenses.filter(e=>e.date.startsWith(mk));
+    if (!mExps.length) {
+      html = '<div class="empty">Belum ada pengeluaran</div>';
+    } else {
+      html = mExps.map(e=>`<div class="list-item" style="align-items:flex-start">
+        <div style="flex:1">
+          <div class="item-name">${e.desc}</div>
+          <div class="item-sub">${e.category} · ${e.date}</div>
+          ${e.photo?`<img src="${e.photo}" class="foto-thumb" style="margin-top:6px" onclick="lihatFoto('${e.desc}','${e.photo}')">`:'' }
+        </div>
+        <div style="text-align:right">
+          <span style="color:#ef4444;font-weight:700">${fRp(e.amount)}</span>
+          ${e.photo?`<div class="foto-link" onclick="lihatFoto('${e.desc}','${e.photo}')">📎 Bukti</div>`:''}
+        </div>
+      </div>`).join("");
+      const total = mExps.reduce((s,e)=>s+e.amount,0);
+      html += `<div style="margin-top:12px;display:flex;justify-content:space-between;font-weight:700;border-top:2px solid #f3f4f6;padding-top:10px">
+        <span>Total</span><span style="color:#ef4444">${fRp(total)}</span>
+      </div>`;
+    }
+  }
+
+  else if (type === 'pending') {
+    title = `⏳ Konfirmasi Transfer`;
+    const pending = (state.pendingPayments || []).filter(p=>p.status==='pending');
+    if (!pending.length) {
+      html = '<div class="empty">Tidak ada yang menunggu konfirmasi 🎉</div>';
+    } else {
+      html = pending.map(p => `
+        <div class="history-item" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:14px">${p.name}</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">${p.date} · ${p.time} · Transfer Mandiri</div>
+            </div>
+            <span class="pending-badge">⏳ Pending</span>
+          </div>
+          ${currentRole==='admin' ? `<div style="display:flex;gap:8px;margin-top:10px">
+            <button onclick="confirmPendingFromStat(${p.id})" style="flex:1;padding:8px;border-radius:8px;border:none;background:#dcfce7;color:#16a34a;font-weight:700;font-size:12px;cursor:pointer">✓ Konfirmasi</button>
+            <button onclick="rejectPendingFromStat(${p.id})" style="flex:1;padding:8px;border-radius:8px;border:none;background:#fee2e2;color:#dc2626;font-weight:700;font-size:12px;cursor:pointer">✕ Tolak</button>
+          </div>` : ''}
+        </div>`).join('');
+    }
+  }
+
+  document.getElementById("modalStatTitle").innerHTML = title;
+  document.getElementById("modalStatBody").innerHTML = html;
+  openModal("modalStat");
+}
+
+function confirmPendingFromStat(id) {
+  if(!state.pendingPayments) return;
+  state.pendingPayments = state.pendingPayments.map(p => p.id===id ? {...p, status:'confirmed'} : p);
+  save(); render();
+  openStatModal('pending'); // refresh
+  alert('✅ Dikonfirmasi! Update iuran anggota secara manual ya.');
+}
+function rejectPendingFromStat(id) {
+  if(!confirm('Tolak pembayaran ini?')) return;
+  state.pendingPayments = state.pendingPayments.map(p => p.id===id ? {...p, status:'rejected'} : p);
+  save(); render();
+  openStatModal('pending');
+}
+
+// ─── SHARE PAY MODAL ───────────────────────────────────────
+let spNameVal = '';
+
+function openPayFromShare() {
+  spNameVal = '';
+  document.getElementById('spName').value = '';
+  document.getElementById('spNameErr').textContent = '';
+  document.getElementById('spStep1').style.display = 'block';
+  document.getElementById('spStep2').style.display = 'none';
+  document.getElementById('spStep3').style.display = 'none';
+  const modal = document.getElementById('sharePayModal');
+  modal.style.display = 'flex';
+}
+
+function closePayFromShare() {
+  document.getElementById('sharePayModal').style.display = 'none';
+}
+
+function spNext() {
+  const name = document.getElementById('spName').value.trim();
+  if (!name) { document.getElementById('spNameErr').textContent = 'Nama wajib diisi'; return; }
+  spNameVal = name;
+  document.getElementById('spNameDisplay').textContent = name;
+  document.getElementById('spStep1').style.display = 'none';
+  document.getElementById('spStep2').style.display = 'block';
+}
+
+async function spSudahBayar() {
+  if (!spNameVal) return;
+  const nominal = '50.000';
+  const pesan = `Saya sudah membayar uang kas Electric DMLZ sejumlah: Rp ${nominal}%0ANama: ${encodeURIComponent(spNameVal)}`;
+  window.open(`https://wa.me/6285299338623?text=${pesan}`, '_blank');
+
+  // Simpan ke pending list
+  try {
+    const fresh = await fetchState();
+    if (fresh) applyState(fresh);
+    if (!Array.isArray(state.pendingPayments)) state.pendingPayments = [];
+    const now = new Date();
+    state.pendingPayments.push({
+      id: Date.now(), name: spNameVal,
+      date: now.toISOString().split('T')[0],
+      time: now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}),
+      status: 'pending'
+    });
+    const body = JSON.stringify({ key: ROW_KEY, data: state });
+    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body
+    });
+    localStorage.setItem("kascrew-v2", JSON.stringify(state));
+  } catch(e) { console.error('spSudahBayar error:', e); }
+
+  document.getElementById('spNameFinal').textContent = spNameVal;
+  document.getElementById('spStep2').style.display = 'none';
+  document.getElementById('spStep3').style.display = 'block';
+}
+
+// ─── MEMBER PAY SYSTEM ─────────────────────────────────────
+let mpNameVal = '';
+
+function openMemberPayModal() {
+  mpNameVal = '';
+  document.getElementById('mpName').value = '';
+  document.getElementById('mpNameErr').textContent = '';
+  document.getElementById('mpStep1').style.display = 'block';
+  document.getElementById('mpStep2').style.display = 'none';
+  document.getElementById('mpStep3').style.display = 'none';
+  openModal('modalMemberPay');
+}
+
+function mpNext() {
+  const name = document.getElementById('mpName').value.trim();
+  if (!name) {
+    document.getElementById('mpNameErr').textContent = 'Nama wajib diisi';
+    return;
+  }
+  mpNameVal = name;
+  document.getElementById('mpNameDisplay').textContent = name;
+  document.getElementById('mpStep1').style.display = 'none';
+  document.getElementById('mpStep2').style.display = 'block';
+}
+
+function copyRekening() {
+  navigator.clipboard.writeText('1540015451309').then(() => {
+    alert('✅ Nomor rekening berhasil disalin!');
+  }).catch(() => {
+    prompt('Salin nomor rekening ini:', '1540015451309');
+  });
+}
+
+function openLivin() {
+  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  // Package resmi sesuai Play Store: id.bmri.livin
+  const LIVIN_PACKAGE  = 'id.bmri.livin';
+  const PLAYSTORE_URL  = 'https://play.google.com/store/apps/details?id=' + LIVIN_PACKAGE;
+  const APPSTORE_URL   = 'https://apps.apple.com/id/app/livin-by-mandiri/id1547591688';
+
+  if (isAndroid) {
+    // Intent Android - langsung buka app jika sudah terinstall
+    const intentUrl = 'intent://#Intent;package=' + LIVIN_PACKAGE + ';scheme=livin;action=android.intent.action.VIEW;end';
+    window.location.href = intentUrl;
+    // Fallback ke Play Store setelah 2.5 detik jika app tidak ada
+    setTimeout(() => { window.open(PLAYSTORE_URL, '_blank'); }, 2500);
+  } else if (isIOS) {
+    window.location.href = 'livin://';
+    setTimeout(() => { window.open(APPSTORE_URL, '_blank'); }, 2000);
+  } else {
+    window.open(PLAYSTORE_URL, '_blank');
+  }
+}
+
+function mpSudahBayar() {
+  if (!mpNameVal) return;
+  const nominal = '50.000';
+  const pesan = `Saya sudah membayar uang kas Electric DMLZ sejumlah: Rp ${nominal}%0ANama: ${encodeURIComponent(mpNameVal)}`;
+  const waUrl = `https://wa.me/6285299338623?text=${pesan}`;
+  window.open(waUrl, '_blank');
+  // Juga simpan ke pending list
+  mpConfirmPending();
+}
+
+async function mpConfirmPending() {
+  if (!mpNameVal) return;
+
+  // Tampilkan loading di tombol
+  const btn = document.querySelector('#mpStep2 button:last-of-type');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+
+  let berhasil = false;
+  try {
+    // Ambil data FRESH dari Supabase dulu agar tidak overwrite data lain
+    const fresh = await fetchState();
+    if (fresh) applyState(fresh);
+
+    // Tambah ke pending list
+    if (!Array.isArray(state.pendingPayments)) state.pendingPayments = [];
+    const now = new Date();
+    state.pendingPayments.push({
+      id: Date.now(),
+      name: mpNameVal,
+      date: now.toISOString().split('T')[0],
+      time: now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}),
+      status: 'pending'
+    });
+
+    // Force save langsung ke Supabase (bypass lock)
+    const body = JSON.stringify({ key: ROW_KEY, data: state });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body
+    });
+
+    if (res.ok) {
+      berhasil = true;
+      localStorage.setItem("kascrew-v2", JSON.stringify(state));
+    } else {
+      const err = await res.text();
+      console.error('Save pending error:', err);
+    }
+  } catch(e) {
+    console.error('mpConfirmPending error:', e);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '✅ Saya Sudah Transfer'; }
+
+  if (berhasil) {
+    document.getElementById('mpNameFinal').textContent = mpNameVal;
+    document.getElementById('mpStep2').style.display = 'none';
+    document.getElementById('mpStep3').style.display = 'block';
+    renderPendingBadge();
+  } else {
+    alert('⚠️ Gagal menyimpan. Cek koneksi internet dan coba lagi.');
+  }
+}
+
+function renderPendingBadge() {
+  const pending = (state.pendingPayments || []).filter(p=>p.status==='pending');
+  const btn = document.getElementById('btnPending');
+  const cnt = document.getElementById('pendingCount');
+  if (btn && cnt) {
+    cnt.textContent = pending.length;
+    btn.style.display = pending.length > 0 && currentRole === 'admin' ? 'inline-block' : 'none';
+  }
+}
+
+function openPendingModal() {
+  const pending = (state.pendingPayments || []).filter(p=>p.status==='pending');
+  const list = document.getElementById('pendingList');
+  if (!pending.length) {
+    list.innerHTML = '<div class="empty">Tidak ada pembayaran yang menunggu konfirmasi</div>';
+  } else {
+    list.innerHTML = pending.map(p => `
+      <div class="history-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:700;font-size:14px">${p.name}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">${p.date} · ${p.time} · Transfer Mandiri</div>
+          </div>
+          <span class="pending-badge">Pending</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="confirmPending(${p.id})" style="flex:1;padding:8px;border-radius:8px;border:none;background:#dcfce7;color:#16a34a;font-weight:700;font-size:12px;cursor:pointer">✓ Konfirmasi</button>
+          <button onclick="rejectPending(${p.id})" style="flex:1;padding:8px;border-radius:8px;border:none;background:#fee2e2;color:#dc2626;font-weight:700;font-size:12px;cursor:pointer">✕ Tolak</button>
+        </div>
+      </div>`).join('');
+  }
+  openModal('modalPending');
+}
+
+function confirmPending(id) {
+  if (!state.pendingPayments) return;
+  state.pendingPayments = state.pendingPayments.map(p =>
+    p.id === id ? {...p, status: 'confirmed'} : p
+  );
+  save();
+  renderPendingBadge();
+  openPendingModal(); // refresh
+  alert('✅ Pembayaran dikonfirmasi! Jangan lupa update iuran anggota secara manual.');
+}
+
+function rejectPending(id) {
+  if (!confirm('Tolak pembayaran ini?')) return;
+  state.pendingPayments = state.pendingPayments.map(p =>
+    p.id === id ? {...p, status: 'rejected'} : p
+  );
+  save();
+  renderPendingBadge();
+  openPendingModal();
+}
+
+// ─── LOGIN SYSTEM ──────────────────────────────────────────
+let currentRole = null; // 'admin' | 'member'
+let currentPinInput = '';
+let loginRole = 'admin';
+
+const DEFAULT_ADMIN_PIN  = '1234';
+const DEFAULT_MEMBER_PIN = '0000';
+
+function getPins() {
+  return {
+    admin:  localStorage.getItem('kascrew-pin-admin')  || DEFAULT_ADMIN_PIN,
+    member: localStorage.getItem('kascrew-pin-member') || DEFAULT_MEMBER_PIN
+  };
+}
+
+function setRole(role) {
+  loginRole = role;
+  currentPinInput = '';
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('roleAdmin').classList.toggle('active', role==='admin');
+  document.getElementById('roleMember').classList.toggle('active', role==='member');
+  document.getElementById('loginHint').textContent = role==='admin' ? 'Masukkan PIN Admin' : 'Masukkan PIN Anggota';
+}
+
+function pinInput(d) {
+  if (currentPinInput.length >= 4) return;
+  currentPinInput += d;
+  updatePinDots();
+  if (currentPinInput.length === 4) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDel() {
+  currentPinInput = currentPinInput.slice(0,-1);
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i=0;i<4;i++) {
+    document.getElementById('d'+i).classList.toggle('filled', i < currentPinInput.length);
+  }
+}
+
+function checkPin() {
+  const pins = getPins();
+  const correct = loginRole==='admin' ? pins.admin : pins.member;
+  if (currentPinInput === correct) {
+    currentRole = loginRole;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('roleTag').textContent = currentRole==='admin' ? '⚡ Admin' : '👁 Anggota';
+    applyRoleUI();
+    render();
+  } else {
+    document.getElementById('loginErr').textContent = '❌ PIN salah, coba lagi';
+    currentPinInput = '';
+    updatePinDots();
+  }
+}
+
+function applyRoleUI() {
+  const isAdmin = currentRole === 'admin';
+  document.getElementById('tabSettings').style.display = isAdmin ? '' : 'none';
+  // Tombol bayar iuran — tampil untuk member di dashboard
+  const btnMemberPay = document.getElementById('btnMemberPay');
+  if (btnMemberPay) btnMemberPay.style.display = !isAdmin ? 'block' : 'none';
+  // Badge pending — tampil untuk admin
+  renderPendingBadge();
+}
+
+function logout() {
+  if (!confirm('Keluar dari KASCREW?')) return;
+  currentRole = null;
+  currentPinInput = '';
+  loginRole = 'admin';
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
+  setRole('admin');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function changePin(role) {
+  const newPin  = document.getElementById(`new${role==='admin'?'Admin':'Member'}Pin`).value;
+  const confPin = document.getElementById(`confirm${role==='admin'?'Admin':'Member'}Pin`).value;
+  const errEl   = document.getElementById(`${role==='admin'?'admin':'member'}PinErr`);
+  if (!/^[0-9]{4}$/.test(newPin)) { errEl.textContent='PIN harus 4 digit angka'; return; }
+  if (newPin !== confPin) { errEl.textContent='PIN tidak cocok'; return; }
+  localStorage.setItem(`kascrew-pin-${role}`, newPin);
+  errEl.textContent='';
+  errEl.style.color='#16a34a';
+  errEl.textContent='✓ PIN berhasil diubah!';
+  document.getElementById(`new${role==='admin'?'Admin':'Member'}Pin`).value='';
+  document.getElementById(`confirm${role==='admin'?'Admin':'Member'}Pin`).value='';
+  setTimeout(()=>{ errEl.textContent=''; errEl.style.color=''; },3000);
+}
+
+// ─── GENERATE TAHUN OTOMATIS ───────────────────────────────
+function generateYearOptions() {
+  const now = new Date().getFullYear();
+  const startYear = now - 3;  // 3 tahun ke belakang
+  const endYear   = now + 5;  // 5 tahun ke depan
+
+  function buildOptions(selectedYear) {
+    let html = '';
+    for (let y = startYear; y <= endYear; y++) {
+      html += `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`;
+    }
+    return html;
+  }
+
+  // Header selYear
+  const selYear = document.getElementById('selYear');
+  if (selYear) selYear.innerHTML = buildOptions(now);
+
+  // Modal bayar - payFromYear & payToYear
+  const payFromYear = document.getElementById('payFromYear');
+  if (payFromYear) payFromYear.innerHTML = buildOptions(now);
+
+  const payToYear = document.getElementById('payToYear');
+  if (payToYear) payToYear.innerHTML = buildOptions(now);
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+generateYearOptions();
+load(); // async - render() dipanggil di dalam load()
+</script>
+</body>
+</html>
