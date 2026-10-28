@@ -843,14 +843,15 @@ const SUPABASE_URL = 'https://oohwveawsjhhlkqtybvz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_B1bgXkaMc3Xttz-OIXN80w_wNd6i813';
 const SB_HEADERS = {
   'Content-Type': 'application/json',
-  'apikey': SUPABASE_KEY,
-  'Authorization': 'Bearer ' + SUPABASE_KEY
+  'apikey': SUPABASE_KEY
 };
 const TABLE = 'kascrew_data';
 const ROW_KEY = 'main';
 
 let isSaving = false;
 let pendingSave = false;
+let dirty = false;      // ada perubahan lokal yang belum tersimpan
+let saveCounter = 0;    // naik tiap save, untuk cegah polling menimpa data baru
 
 // ─── STORAGE ───────────────────────────────────────────────
 async function fetchState() {
@@ -904,10 +905,11 @@ async function load() {
 
   // Polling realtime setiap 15 detik
   setInterval(async () => {
-    if (isSaving) return;
+    if (isSaving || dirty) return;
+    const before = saveCounter;
     try {
       const s = await fetchState();
-      if (s) {
+      if (s && !isSaving && !dirty && before === saveCounter) {
         applyState(s);
         render();
         renderPendingBadge(); // update badge notif pending
@@ -918,33 +920,33 @@ async function load() {
 
 async function save() {
   // Simpan ke localStorage sebagai backup
-  localStorage.setItem("kascrew-v2", JSON.stringify(state));
+  try { localStorage.setItem("kascrew-v2", JSON.stringify(state)); } catch(e) {}
+  dirty = true;
+  saveCounter++;
 
   if (isSaving) { pendingSave = true; return; }
   isSaving = true;
 
-  const body = JSON.stringify({ key: ROW_KEY, data: state });
   try {
-    // Coba upsert (POST dengan merge-duplicates)
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=key`, {
       method: 'POST',
       headers: {
         ...SB_HEADERS,
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
-      body
+      body: JSON.stringify({ key: ROW_KEY, data: state })
     });
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Save response error:', errText);
-      throw new Error(errText);
+      console.error('Save response error:', res.status, errText);
+      throw new Error(res.status + ' ' + errText);
     }
-    // Tampilkan indikator tersimpan
+    if (!pendingSave) dirty = false;
     const si = document.getElementById('syncIndicator');
     if (si) { si.style.display='block'; setTimeout(()=>si.style.display='none',2000); }
   } catch(e) {
     console.error('Save error:', e);
-    showSaveError();
+    showSaveError(String(e.message || e));
   }
 
   isSaving = false;
@@ -957,11 +959,12 @@ function showLoading(show) {
   el.style.display = show ? 'block' : 'none';
 }
 
-function showSaveError() {
+function showSaveError(detail) {
   let el = document.getElementById('saveErrBanner');
   if (!el) return;
+  el.textContent = '⚠️ Gagal menyimpan ke server' + (detail ? ' — ' + detail.slice(0,140) : '');
   el.style.display = 'block';
-  setTimeout(()=>{ el.style.display='none'; }, 4000);
+  setTimeout(()=>{ el.style.display='none'; }, 8000);
 }
 
 // ─── HELPERS ───────────────────────────────────────────────
@@ -1352,6 +1355,53 @@ function toggleExpAll() {
   render();
 }
 
+
+// Kompres foto agar data tidak membengkak (maks 900px, JPEG 70%)
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const r = Math.min(1, maxSize / Math.max(w, h));
+        w = Math.round(w * r); h = Math.round(h * r);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Fungsi yang dipanggil modal bayar tapi sebelumnya belum ada
+function onPayMethodChange() {
+  const ex = document.getElementById('payMethod').value === 'TidakWajib';
+  document.getElementById('payExemptSection').style.display = ex ? 'block' : 'none';
+  document.getElementById('payDateSection').style.display   = ex ? 'none'  : 'block';
+  checkPayConflict();
+}
+function checkPayConflict() {
+  const w = document.getElementById('payWarning');
+  if (!w || payingMemberId == null) return;
+  const fromKey = toKey(document.getElementById('payFromMonth').value, document.getElementById('payFromYear').value);
+  const toKey2  = toKey(document.getElementById('payToMonth').value,   document.getElementById('payToYear').value);
+  if (fromKey > toKey2) {
+    w.textContent = 'Bulan awal tidak boleh lebih besar dari bulan akhir';
+    w.style.display = 'block'; return;
+  }
+  const overlap = (state.payments[payingMemberId] || []).some(p => !(p.toKey < fromKey || p.fromKey > toKey2));
+  if (overlap && document.getElementById('payMethod').value !== 'TidakWajib') {
+    w.textContent = 'Sebagian bulan ini sudah tercatat lunas. Menyimpan akan menggantikan catatan lama.';
+    w.style.display = 'block';
+  } else { w.style.display = 'none'; }
+}
+
 // ─── DUES / PAYMENT ────────────────────────────────────────
 function openPay(memberId) {
   payingMemberId = memberId;
@@ -1498,16 +1548,14 @@ function addExpense() {
   const photoFile = document.getElementById("expPhoto")?.files[0];
   if (photoFile) {
     if (photoFile.size > 5*1024*1024) { errEl.textContent="Foto max 5MB"; return; }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      state.expenses.unshift({id:Date.now(),date,desc,amount,category,photo:e.target.result});
+    compressImage(photoFile, 900, 0.7).then(dataUrl => {
+      state.expenses.unshift({id:Date.now(),date,desc,amount,category,photo:dataUrl});
       document.getElementById("expDate").value="";
       document.getElementById("expDesc").value="";
       document.getElementById("expAmount").value="";
       document.getElementById("expPhoto").value="";
       save(); render();
-    };
-    reader.readAsDataURL(photoFile);
+    }).catch(() => { errEl.textContent = "Foto gagal diproses, coba foto lain"; });
   } else {
     state.expenses.unshift({id:Date.now(),date,desc,amount,category,photo:null});
     document.getElementById("expDate").value="";
@@ -2306,7 +2354,7 @@ async function spSudahBayar() {
       status: 'pending'
     });
     const body = JSON.stringify({ key: ROW_KEY, data: state });
-    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=key`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body
@@ -2410,7 +2458,7 @@ async function mpConfirmPending() {
 
     // Force save langsung ke Supabase (bypass lock)
     const body = JSON.stringify({ key: ROW_KEY, data: state });
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=key`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body
